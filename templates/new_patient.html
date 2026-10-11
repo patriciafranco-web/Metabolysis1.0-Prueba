@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h3 class="mb-3 text-primary"><i class="bi bi-person-plus-fill"></i> Registrar Paciente (Metabólico y Diabetológico)</h3>
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nombre Completo</label>
+                        <input type="text" class="form-control" name="full_name" required>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">N° de Cédula (CI)</label>
+                            <input type="text" class="form-control" name="ci" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Sanatorio / Clínica</label>
+                            <input type="text" class="form-control" name="sanatorio" placeholder="Ej: Sanatorio San Roque" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Edad</label>
+                            <input type="number" class="form-control" name="age" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Género</label>
+                            <select class="form-select" name="gender" required>
+                                <option value="Hombre">Hombre</option>
+                                <option value="Mujer">Mujer</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Teléfono (WhatsApp)</label>
+                            <input type="text" class="form-control" name="phone">
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    <h5 class="text-secondary"><i class="bi bi-journal-medical"></i> Antecedentes Metabólicos</h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Patología Principal</label>
+                            <select class="form-select" name="pathology_type">
+                                <option value="Diabetes Tipo 2">Diabetes Tipo 2</option>
+                                <option value="Diabetes Tipo 1">Diabetes Tipo 1</option>
+                                <option value="Obesidad (Grado I-III)">Obesidad (Grado I, II o III)</option>
+                                <option value="Síndrome Metabólico">Síndrome Metabólico</option>
+                                <option value="Resistencia a la Insulina">Resistencia a la Insulina / Pre-diabetes</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Años de Evolución</label>
+                            <input type="number" class="form-control" name="evolution_years" placeholder="Ej: 5">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Comorbilidades / Daño de Órgano Blanco</label>
+                        <input type="text" class="form-control" name="comorbidities" placeholder="Ej: HTA, Retinopatía, Hígado Graso (MASLD), Dislipidemia...">
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100 mt-3"><i class="bi bi-save"></i> Guardar Paciente</button>
+                    <a href="/" class="btn btn-secondary w-100 mt-2">Cancelar</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h3 class="mb-3 text-primary"><i class="bi bi-clipboard2-pulse"></i> Nuevo Control Clínico - {{ patient.full_name }}</h3>
+                <form method="POST">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Fecha del Control</label>
+                            <input type="date" class="form-control" name="date" required>
+                        </div>
+                    </div>
+
+                    <h5 class="text-secondary mt-4"><i class="bi bi-rulers"></i> 1. Antropometría y Composición Corporal</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Peso (kg)</label>
+                            <input type="number" step="0.1" class="form-control" name="weight">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Altura (m, ej: 1.75)</label>
+                            <input type="number" step="0.01" class="form-control" name="height">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Cintura (cm)</label>
+                            <input type="number" step="0.1" class="form-control" name="waist">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">% Grasa Corporal</label>
+                            <input type="number" step="0.1" class="form-control" name="body_fat">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Masa Muscular (kg)</label>
+                            <input type="number" step="0.1" class="form-control" name="muscle_mass">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nivel de Grasa Visceral</label>
+                            <input type="number" step="1" class="form-control" name="visceral_fat">
+                        </div>
+                    </div>
+
+                    <h5 class="text-secondary mt-4"><i class="bi bi-activity"></i> 2. Control Diabetológico y HOMA-IR</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Glucemia en Ayunas (mg/dL)</label>
+                            <input type="number" step="0.1" class="form-control" name="glucose">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Insulina Basal (mIU/L)</label>
+                            <input type="number" step="0.1" class="form-control" name="insulin">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">HbA1c (Hemoglobina Glicosilada %)</label>
+                            <input type="number" step="0.1" class="form-control" name="hba1c">
+                        </div>
+                    </div>
+
+                    <h5 class="text-secondary mt-4"><i class="bi bi-heart-pulse"></i> 3. Perfil Lipídico y Presión Arterial</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Colesterol Total</label>
+                            <input type="number" step="0.1" class="form-control" name="cholesterol_tot">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">HDL</label>
+                            <input type="number" step="0.1" class="form-control" name="hdl">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">LDL</label>
+                            <input type="number" step="0.1" class="form-control" name="ldl">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Triglicéridos</label>
+                            <input type="number" step="0.1" class="form-control" name="triglycerides">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Presión Sistólica (mmHg)</label>
+                            <input type="number" class="form-control" name="bp_systolic">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Presión Diastólica (mmHg)</label>
+                            <input type="number" class="form-control" name="bp_diastolic">
+                        </div>
+                    </div>
+
+                    <h5 class="text-secondary mt-4"><i class="bi bi-shield-exclamation"></i> 4. Función Renal y Hepática</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Creatinina (mg/dL)</label>
+                            <input type="number" step="0.01" class="form-control" name="creatinine">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">eGFR (mL/min)</label>
+                            <input type="number" step="0.1" class="form-control" name="egfr">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Albuminuria (mg/g)</label>
+                            <input type="number" step="0.1" class="form-control" name="albuminuria">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">TGP / ALT (U/L)</label>
+                            <input type="number" step="0.1" class="form-control" name="alt_tgp">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">TGO / AST (U/L)</label>
+                            <input type="number" step="0.1" class="form-control" name="ast_tgo">
+                        </div>
+                    </div>
+
+                    <h5 class="text-secondary mt-4"><i class="bi bi-journal-text"></i> 5. Evolución Clínica y Notas Médicas</h5>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Motivo de Consulta / Síntomas Actuales</label>
+                        <textarea class="form-control" name="motivo_consulta" rows="2" placeholder="Ej: Paciente refiere polidipsia y fatiga ocasional..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Examen Físico</label>
+                        <textarea class="form-control" name="examen_fisico" rows="2" placeholder="Ej: Consciente, bien hidratado, pulsos distales conservados, sin edemas..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Análisis Clínico y Criterio Médico</label>
+                        <textarea class="form-control" name="notes" rows="2" placeholder="Ej: Buena adherencia al tratamiento, descenso progresivo de HbA1c..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Conducta / Plan Terapéutico e Indicaciones</label>
+                        <textarea class="form-control" name="conducta_medica" rows="2" placeholder="Ej: Ajustar dosis de metformina, solicitar perfil lipídico de control en 3 meses..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Esquema Farmacológico Actual</label>
+                        <input type="text" class="form-control" name="medications" placeholder="Ej: Metformina 850mg c/12hs, Atorvastatina 20mg...">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 mt-4"><i class="bi bi-save"></i> Guardar Control Clínico</button>
+                    <a href="/patient/{{ patient.id }}" class="btn btn-secondary w-100 mt-2">Cancelar</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
