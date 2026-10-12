@@ -117,7 +117,6 @@ class MedicalRecord(db.Model):
 
 with app.app_context():
     db.create_all()
-    # Usuario por defecto de emergencia / acceso directo
     admin_user = User.query.filter_by(username='admin').first()
     if not admin_user:
         hashed_pw = generate_password_hash('123', method='pbkdf2:sha256')
@@ -321,39 +320,114 @@ def generate_pdf(patient_id):
     patient = Patient.query.get_or_404(patient_id)
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
-    p.setFont("Helvetica-Bold", 16)
-    p.drawString(50, 750, "METABOLISYS - INFORME CLÍNICO METABÓLICO")
-    p.setFont("Helvetica", 10)
-    p.drawString(50, 735, f"Sanatorio: {patient.sanatorio} | Patología: {patient.pathology_type or 'N/D'}")
-    p.line(50, 725, 560, 725)
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(50, 700, f"Paciente: {patient.full_name}")
-    p.setFont("Helvetica", 10)
-    p.drawString(50, 685, f"CI: {patient.ci} | Edad: {patient.age} años | Género: {patient.gender} | Tel: {patient.phone or 'N/D'}")
     
-    y = 650
+    # Encabezado
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(50, 750, "DRA. SOFIA FERNANDEZ - DIABETES Y OBESIDAD")
+    p.setFont("Helvetica", 9)
+    p.drawString(50, 735, f"Sanatorio: {patient.sanatorio} | Tel: {patient.phone or 'N/D'}")
+    p.line(50, 725, 560, 725)
+    
+    # Datos del Paciente
     p.setFont("Helvetica-Bold", 11)
-    p.drawString(50, y, "Evolución y Controles Recientes:")
-    y -= 20
-    for r in patient.records[-3:]:
-        p.setFont("Helvetica-Bold", 9)
-        p.drawString(50, y, f"Fecha: {r.date} | Peso: {r.weight}kg | IMC: {r.bmi} | HbA1c: {r.hba1c}% | Glicemia: {r.glucose}mg/dL")
+    p.drawString(50, 705, f"INFORME CLÍNICO DE PACIENTE: {patient.full_name}")
+    p.setFont("Helvetica", 10)
+    p.drawString(50, 690, f"CI: {patient.ci} | Edad: {patient.age} años | Género: {patient.gender} | Procedencia: {patient.procedencia or 'N/D'}")
+    
+    y = 665
+    
+    if patient.records:
+        first_r = patient.records[0]
+        last_r = patient.records[-1]
+        
+        w_init = first_r.weight or 0
+        w_last = last_r.weight or 0
+        w_diff = round(w_init - w_last, 2)
+        
+        f_init = first_r.body_fat_kg or 0
+        f_last = last_r.body_fat_kg or 0
+        f_diff = round(f_init - f_last, 2)
+        
+        m_init = first_r.muscle_mass_kg or 0
+        m_last = last_r.muscle_mass_kg or 0
+        m_diff = round(m_last - m_init, 2)
+        
+        c_init = first_r.waist or 0
+        c_last = last_r.waist or 0
+        c_diff = round(c_init - c_last, 2)
+        
+        # Cuadro de Resumen Desde Inicio al Último Control
+        p.setFont("Helvetica-Bold", 10)
+        p.drawString(50, y, "RESUMEN DESDE INICIO AL ÚLTIMO CONTROL")
         y -= 15
         p.setFont("Helvetica", 9)
-        if r.indicaciones_tratamiento:
-            p.drawString(60, y, f"• Indicaciones: {r.indicaciones_tratamiento}")
-            y -= 14
-        if r.conducta_medica:
-            p.drawString(60, y, f"• Conducta: {r.conducta_medica}")
-            y -= 14
-        y -= 10
-        if y < 50:
+        p.drawString(50, y, f"• Peso Inicial: {w_init} kg  |  Peso Último: {w_last} kg  |  Peso Total Perdido: {w_diff} kg")
+        y -= 14
+        p.drawString(50, y, f"• Grasa Inicial: {f_init} kg  |  Grasa Última: {f_last} kg  |  Grasa Total Perdida: {f_diff} kg")
+        y -= 14
+        p.drawString(50, y, f"• Músculo Inicial: {m_init} kg  |  Músculo Último: {m_last} kg  |  Variación Músculo: {m_diff} kg")
+        y -= 14
+        p.drawString(50, y, f"• Cintura Inicial: {c_init} cm  |  Cintura Última: {c_last} cm  |  Cintura Perdida: {c_diff} cm")
+        y -= 25
+        
+        # Historial de Controles
+        p.setFont("Helvetica-Bold", 10)
+        p.drawString(50, y, "EVOLUCIÓN POR FECHAS (CONTROLES ANTROPOMÉTRICOS)")
+        y -= 15
+        
+        p.setFont("Helvetica-Bold", 8)
+        p.drawString(50, y, "FECHA")
+        p.drawString(110, y, "ALTURA")
+        p.drawString(170, y, "PESO")
+        p.drawString(230, y, "GRASA (kg)")
+        p.drawString(300, y, "MÚSCULO")
+        p.drawString(370, y, "IMC")
+        p.drawString(430, y, "CINTURA")
+        y -= 12
+        p.line(50, y+3, 540, y+3)
+        y -= 12
+        
+        p.setFont("Helvetica", 8)
+        for r in patient.records:
+            if y < 150:
+                p.showPage()
+                y = 750
+            p.drawString(50, y, str(r.date))
+            p.drawString(110, y, f"{r.height or '-'} cm")
+            p.drawString(170, y, f"{r.weight or '-'} kg")
+            p.drawString(230, y, f"{r.body_fat_kg or '-'} kg")
+            p.drawString(300, y, f"{r.muscle_mass_kg or '-'} kg")
+            p.drawString(370, y, str(r.bmi))
+            p.drawString(430, y, f"{r.waist or '-'} cm")
+            y -= 16
+        
+        y -= 15
+        if y < 180:
             p.showPage()
             y = 750
+            
+        p.setFont("Helvetica-Bold", 10)
+        p.drawString(50, y, "INDICACIONES Y TRATAMIENTO ACTUAL:")
+        y -= 16
+        p.setFont("Helvetica", 9)
+        
+        meds = last_r.medications or "Sin medicación registrada"
+        for line in meds.split('\n'):
+            p.drawString(60, y, f"• {line}")
+            y -= 14
+            
+        inds = last_r.indicaciones_tratamiento or "Sin indicaciones adicionales"
+        for line in inds.split('\n'):
+            p.drawString(60, y, f"• {line}")
+            y -= 14
+    else:
+        p.setFont("Helvetica", 10)
+        p.drawString(50, y, "No hay controles registrados todavía para este paciente.")
+
     p.showPage()
     p.save()
     buffer.seek(0)
-    return send_file(buffer, as_attachment=True, download_name=f"Informe_Matriz_{patient.full_name}.pdf", mimetype='application/pdf')
+    return send_file(buffer, as_attachment=True, download_name=f"Informe_{patient.full_name}.pdf", mimetype='application/pdf')
 
 @app.route('/report/recipe/<int:patient_id>')
 @login_required
