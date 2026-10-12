@@ -53,21 +53,51 @@
         
         <!-- Pestaña 1: Filiación -->
         <div class="tab-pane fade show active" id="filiacion" role="tabpanel">
-            <div class="card p-4 shadow-sm">
+            <div class="card p-4 shadow-sm mb-3">
                 <h5 class="text-danger mb-3">Datos de Filiación y Antecedentes</h5>
                 <div class="row g-3">
-                    <div class="col-md-4"><strong>Procedencia:</strong> <span class="text-light">{{ patient.procedencia or 'N/D' }}</span></div>
-                    <div class="col-md-4"><strong>Profesión:</strong> <span class="text-light">{{ patient.profession or 'N/D' }}</span></div>
-                    <div class="col-md-4"><strong>Teléfono:</strong> <span class="text-light">{{ patient.phone or 'N/D' }}</span></div>
-                    <div class="col-md-4"><strong>Tipo Patología:</strong> <span class="text-light">{{ patient.pathology_type or 'N/D' }}</span></div>
-                    <div class="col-md-4"><strong>Años Evolución:</strong> <span class="text-light">{{ patient.evolution_years or 0 }} años</span></div>
+                    <div class="col-md-4"><strong>Procedencia:</strong> {{ patient.procedencia or 'N/D' }}</div>
+                    <div class="col-md-4"><strong>Profesión:</strong> {{ patient.profession or 'N/D' }}</div>
+                    <div class="col-md-4"><strong>Teléfono:</strong> {{ patient.phone or 'N/D' }}</div>
+                    <div class="col-md-4"><strong>Tipo Patología:</strong> {{ patient.pathology_type or 'N/D' }}</div>
+                    <div class="col-md-4"><strong>Años Evolución:</strong> {{ patient.evolution_years or 0 }} años</div>
                 </div>
                 <hr class="border-secondary">
                 <div class="row g-3">
-                    <div class="col-md-4"><strong>Ant. Familiares:</strong><p class="text-light mb-0">{{ patient.antecedentes_familiares or 'Ninguno' }}</p></div>
-                    <div class="col-md-4"><strong>Ant. Personales:</strong><p class="text-light mb-0">{{ patient.antecedentes_personales or 'Ninguno' }}</p></div>
-                    <div class="col-md-4"><strong>Tratamiento Base:</strong><p class="text-light mb-0">{{ patient.tratamiento_base or 'Ninguno' }}</p></div>
+                    <div class="col-md-4"><strong>Ant. Familiares:</strong><p class="text-white mb-0">{{ patient.antecedentes_familiares or 'Ninguno' }}</p></div>
+                    <div class="col-md-4"><strong>Ant. Personales:</strong><p class="text-white mb-0">{{ patient.antecedentes_personales or 'Ninguno' }}</p></div>
+                    <div class="col-md-4"><strong>Tratamiento Base:</strong><p class="text-white mb-0">{{ patient.tratamiento_base or 'Ninguno' }}</p></div>
+                    <div class="col-md-6"><strong>Cirugías:</strong><p class="text-white mb-0">{{ patient.historial_cirugias or 'Ninguna' }}</p></div>
+                    <div class="col-md-6"><strong>Alergia Fármacos:</strong><p class="text-white mb-0">{{ patient.alergia_farmacos or 'Ninguna' }}</p></div>
                 </div>
+            </div>
+
+            {% if patient.gender == 'Mujer' %}
+            <div class="card p-4 shadow-sm mb-3">
+                <h5 class="text-danger mb-3">Datos Ginecológicos</h5>
+                <div class="row g-3">
+                    <div class="col-md-3"><strong>Hijos:</strong> {{ patient.cant_hijos or 'N/D' }}</div>
+                    <div class="col-md-3"><strong>Menarca:</strong> {{ patient.menarca or 'N/D' }}</div>
+                    <div class="col-md-3"><strong>Menstruación Regular:</strong> {{ patient.menstruacion_regular or 'N/D' }}</div>
+                    <div class="col-md-3"><strong>Anticonceptivos:</strong> {{ patient.anticonceptivos or 'N/D' }}</div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card p-4 shadow-sm mb-3">
+                <h5 class="text-danger mb-3">Estilo de Vida y Checklist GLP-1</h5>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4"><strong>Sueño:</strong> {{ patient.calidad_sueno or 'N/D' }}</div>
+                    <div class="col-md-4"><strong>Actividad Física:</strong> {{ patient.actividad_fisica or 'N/D' }}</div>
+                    <div class="col-md-4"><strong>Fuma / Alcohol:</strong> {{ patient.fuma_alcohol or 'N/D' }}</div>
+                    <div class="col-md-6"><strong>Comidas al día:</strong> {{ patient.veces_come or 'N/D' }}</div>
+                    <div class="col-md-6"><strong>Gaseosa / Jugo:</strong> {{ patient.consume_gaseosa_jugo or 'N/D' }}</div>
+                </div>
+                {% if patient.checklist_glp1_notas %}
+                <hr class="border-secondary">
+                <strong>Checklist GLP-1 / Notas de Seguridad:</strong>
+                <p class="text-warning mb-0 mt-1">{{ patient.checklist_glp1_notas }}</p>
+                {% endif %}
             </div>
         </div>
 
