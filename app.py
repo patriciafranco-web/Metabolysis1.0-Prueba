@@ -69,6 +69,12 @@ class MedicalRecord(db.Model):
     basal_metabolism = db.Column(db.Float)
     waist = db.Column(db.Float) # Circunferencia de abdomen
     
+    # Cálculos automáticos de diferencias / pérdidas (Cuadro resumen Excel)
+    weight_lost = db.Column(db.Float, default=0.0)
+    fat_lost = db.Column(db.Float, default=0.0)
+    muscle_delta = db.Column(db.Float, default=0.0)
+    waist_lost = db.Column(db.Float, default=0.0)
+    
     # Laboratorios (Hoja Laboratorios)
     glucose = db.Column(db.Float)
     insulin = db.Column(db.Float)
@@ -247,18 +253,36 @@ def patient_detail(id):
 def new_record(patient_id):
     patient = Patient.query.get_or_404(patient_id)
     if request.method == 'POST':
+        first_record = patient.records[0] if patient.records else None
+        
+        w_curr = float(request.form.get('weight') or 0)
+        f_curr = float(request.form.get('body_fat_kg') or 0)
+        m_curr = float(request.form.get('muscle_mass_kg') or 0)
+        wst_curr = float(request.form.get('waist') or 0)
+        
+        w_init = first_record.weight if first_record and first_record.weight else w_curr
+        f_init = first_record.body_fat_kg if first_record and first_record.body_fat_kg else f_curr
+        m_init = first_record.muscle_mass_kg if first_record and first_record.muscle_mass_kg else m_curr
+        wst_init = first_record.waist if first_record and first_record.waist else wst_curr
+
         record = MedicalRecord(
             patient_id=patient.id,
             date=request.form['date'],
             height=float(request.form.get('height') or 0),
-            weight=float(request.form.get('weight') or 0),
-            body_fat_kg=float(request.form.get('body_fat_kg') or 0),
+            weight=w_curr,
+            body_fat_kg=f_curr,
             body_fat_pct=float(request.form.get('body_fat_pct') or 0),
             visceral_fat=float(request.form.get('visceral_fat') or 0),
-            muscle_mass_kg=float(request.form.get('muscle_mass_kg') or 0),
+            muscle_mass_kg=m_curr,
             muscle_mass_pct=float(request.form.get('muscle_mass_pct') or 0),
             basal_metabolism=float(request.form.get('basal_metabolism') or 0),
-            waist=float(request.form.get('waist') or 0),
+            waist=wst_curr,
+            
+            # Cálculos automáticos de pérdidas respecto al inicio
+            weight_lost=round(w_init - w_curr, 2) if first_record else 0.0,
+            fat_lost=round(f_init - f_curr, 2) if first_record else 0.0,
+            muscle_delta=round(m_curr - m_init, 2) if first_record else 0.0,
+            waist_lost=round(wst_init - wst_curr, 2) if first_record else 0.0,
             
             glucose=float(request.form.get('glucose') or 0),
             insulin=float(request.form.get('insulin') or 0),
@@ -311,9 +335,8 @@ def export_excel():
     writer.writerow([
         'ID', 'Nombre', 'CI', 'Edad', 'Género', 'Teléfono', 'Sanatorio', 'Procedencia', 'Profesión', 'Patología', 
         'Años Evolución', 'Antecedentes Familiares', 'Antecedentes Personales', 'Comorbilidades', 'Tratamiento Base',
-        'Cirugías', 'Alergias', 'Sueño', 'Actividad Física', 'Fuma/Alcohol', 'Comidas/Día', 'Gaseosa/Jugo',
-        'Fecha Control', 'Altura (cm)', 'Peso (kg)', 'IMC', 'Grasa Corp (kg)', 'Grasa Corp (%)', 'Grasa Visceral', 
-        'Músculo (kg)', 'Músculo (%)', 'Metabolismo Basal', 'Cintura (cm)', 'Glicemia', 'Insulina', 'HbA1c (%)', 
+        'Fecha Control', 'Altura (cm)', 'Peso (kg)', 'Peso Perdido (kg)', 'IMC', 'Grasa Corp (kg)', 'Grasa Perdida (kg)', 'Grasa Corp (%)', 'Grasa Visceral', 
+        'Músculo (kg)', 'Músculo Delta (kg)', 'Músculo (%)', 'Metabolismo Basal', 'Cintura (cm)', 'Cintura Perdida (cm)', 'Glicemia', 'Insulina', 'HbA1c (%)', 
         'Triglicéridos', 'Col. Tot', 'HDL', 'LDL', 'VLDL', 'Ácido Úrico', 'GOT', 'GPT', 'FA', 'Bili Tot', 'Bili Dir', 
         'Bili Ind', 'Urea', 'Creatinina', 'TSH', 'T4', 'T3', 'Anti-TPO', 'Vit D', 'Vit B12', 'Calcio', 'Magnesio', 
         'Fósforo', 'Cloro', 'Eco Abdominal', 'Eco Tiroidea', 'Otros Estudios', 'Indicaciones / Tratamiento', 'Medicación', 
@@ -326,16 +349,15 @@ def export_excel():
                 writer.writerow([
                     p.id, p.full_name, p.ci, p.age, p.gender, p.phone, p.sanatorio, p.procedencia, p.profession, p.pathology_type,
                     p.evolution_years, p.antecedentes_familiares, p.antecedentes_personales, p.comorbidities, p.tratamiento_base,
-                    p.historial_cirugias, p.alergia_farmacos, p.calidad_sueno, p.actividad_fisica, p.fuma_alcohol, p.veces_come, p.consume_gaseosa_jugo,
-                    r.date, r.height, r.weight, r.bmi, r.body_fat_kg, r.body_fat_pct, r.visceral_fat, r.muscle_mass_kg, r.muscle_mass_pct,
-                    r.basal_metabolism, r.waist, r.glucose, r.insulin, r.hba1c, r.triglycerides, r.cholesterol_tot, r.hdl, r.ldl,
+                    r.date, r.height, r.weight, r.weight_lost, r.bmi, r.body_fat_kg, r.fat_lost, r.body_fat_pct, r.visceral_fat, r.muscle_mass_kg, r.muscle_delta, r.muscle_mass_pct,
+                    r.basal_metabolism, r.waist, r.waist_lost, r.glucose, r.insulin, r.hba1c, r.triglycerides, r.cholesterol_tot, r.hdl, r.ldl,
                     r.vldl, r.uric_acid, r.got, r.gpt, r.fa, r.bili_tot, r.bili_dir, r.bili_ind, r.urea, r.creatinine,
                     r.tsh, r.t4, r.t3, r.anti_tpo, r.vit_d, r.vit_b12, r.calcium, r.magnesium, r.phosphorus, r.chlorine,
                     r.ecografia_abdominal, r.ecografia_tiroidea, r.otros_estudios, r.indicaciones_tratamiento, r.medications,
                     r.proximo_control, r.homair, r.waist_height_ratio, r.conducta_medica
                 ])
         else:
-            writer.writerow([p.id, p.full_name, p.ci, p.age, p.gender, p.phone, p.sanatorio, p.procedencia, p.profession, p.pathology_type, p.evolution_years, p.antecedentes_familiares, p.antecedentes_personales, p.comorbidities, p.tratamiento_base, p.historial_cirugias, p.alergia_farmacos, p.calidad_sueno, p.actividad_fisica, p.fuma_alcohol, p.veces_come, p.consume_gaseosa_jugo, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''])
+            writer.writerow([p.id, p.full_name, p.ci, p.age, p.gender, p.phone, p.sanatorio, p.procedencia, p.profession, p.pathology_type, p.evolution_years, p.antecedentes_familiares, p.antecedentes_personales, p.comorbidities, p.tratamiento_base, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''])
     output.seek(0)
     return Response(
         output.getvalue(),
@@ -401,17 +423,18 @@ def generate_pdf(patient_id):
         
         # Historial de Controles
         p.setFont("Helvetica-Bold", 10)
-        p.drawString(50, y, "EVOLUCIÓN POR FECHAS (CONTROLES ANTROPOMÉTRICOS)")
+        p.drawString(50, y, "EVOLUCIÓN POR FECHAS (CONTROLES ANTROPOMÉTRICOS Y PÉRDIDAS)")
         y -= 15
         
         p.setFont("Helvetica-Bold", 8)
         p.drawString(50, y, "FECHA")
-        p.drawString(110, y, "ALTURA")
-        p.drawString(170, y, "PESO")
-        p.drawString(230, y, "GRASA (kg)")
-        p.drawString(300, y, "MÚSCULO")
-        p.drawString(370, y, "IMC")
-        p.drawString(430, y, "CINTURA")
+        p.drawString(110, y, "PESO")
+        p.drawString(170, y, "P. PERDIDO")
+        p.drawString(230, y, "GRASA")
+        p.drawString(290, y, "MÚSCULO")
+        p.drawString(350, y, "M. DELTA")
+        p.drawString(410, y, "IMC")
+        p.drawString(470, y, "CINTURA")
         y -= 12
         p.line(50, y+3, 540, y+3)
         y -= 12
@@ -422,12 +445,13 @@ def generate_pdf(patient_id):
                 p.showPage()
                 y = 750
             p.drawString(50, y, str(r.date))
-            p.drawString(110, y, f"{r.height or '-'} cm")
-            p.drawString(170, y, f"{r.weight or '-'} kg")
+            p.drawString(110, y, f"{r.weight or '-'} kg")
+            p.drawString(170, y, f"-{r.weight_lost or 0} kg")
             p.drawString(230, y, f"{r.body_fat_kg or '-'} kg")
-            p.drawString(300, y, f"{r.muscle_mass_kg or '-'} kg")
-            p.drawString(370, y, str(r.bmi))
-            p.drawString(430, y, f"{r.waist or '-'} cm")
+            p.drawString(290, y, f"{r.muscle_mass_kg or '-'} kg")
+            p.drawString(350, y, f"{r.muscle_delta or 0} kg")
+            p.drawString(410, y, str(r.bmi))
+            p.drawString(470, y, f"{r.waist or '-'} cm")
             y -= 16
         
         y -= 15
