@@ -56,17 +56,17 @@
             <div class="card p-4 shadow-sm">
                 <h5 class="text-danger mb-3">Datos de Filiación y Antecedentes</h5>
                 <div class="row g-3">
-                    <div class="col-md-4"><strong>Procedencia:</strong> {{ patient.procedencia or 'N/D' }}</div>
-                    <div class="col-md-4"><strong>Profesión:</strong> {{ patient.profession or 'N/D' }}</div>
-                    <div class="col-md-4"><strong>Teléfono:</strong> {{ patient.phone or 'N/D' }}</div>
-                    <div class="col-md-4"><strong>Tipo Patología:</strong> {{ patient.pathology_type or 'N/D' }}</div>
-                    <div class="col-md-4"><strong>Años Evolución:</strong> {{ patient.evolution_years or 0 }} años</div>
+                    <div class="col-md-4"><strong>Procedencia:</strong> <span class="text-light">{{ patient.procedencia or 'N/D' }}</span></div>
+                    <div class="col-md-4"><strong>Profesión:</strong> <span class="text-light">{{ patient.profession or 'N/D' }}</span></div>
+                    <div class="col-md-4"><strong>Teléfono:</strong> <span class="text-light">{{ patient.phone or 'N/D' }}</span></div>
+                    <div class="col-md-4"><strong>Tipo Patología:</strong> <span class="text-light">{{ patient.pathology_type or 'N/D' }}</span></div>
+                    <div class="col-md-4"><strong>Años Evolución:</strong> <span class="text-light">{{ patient.evolution_years or 0 }} años</span></div>
                 </div>
                 <hr class="border-secondary">
                 <div class="row g-3">
-                    <div class="col-md-4"><strong>Ant. Familiares:</strong><p class="text-muted mb-0">{{ patient.antecedentes_familiares or 'Ninguno' }}</p></div>
-                    <div class="col-md-4"><strong>Ant. Personales:</strong><p class="text-muted mb-0">{{ patient.antecedentes_personales or 'Ninguno' }}</p></div>
-                    <div class="col-md-4"><strong>Tratamiento Base:</strong><p class="text-muted mb-0">{{ patient.tratamiento_base or 'Ninguno' }}</p></div>
+                    <div class="col-md-4"><strong>Ant. Familiares:</strong><p class="text-light mb-0">{{ patient.antecedentes_familiares or 'Ninguno' }}</p></div>
+                    <div class="col-md-4"><strong>Ant. Personales:</strong><p class="text-light mb-0">{{ patient.antecedentes_personales or 'Ninguno' }}</p></div>
+                    <div class="col-md-4"><strong>Tratamiento Base:</strong><p class="text-light mb-0">{{ patient.tratamiento_base or 'Ninguno' }}</p></div>
                 </div>
             </div>
         </div>
