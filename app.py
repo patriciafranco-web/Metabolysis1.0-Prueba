@@ -17,55 +17,89 @@ db = SQLAlchemy(app)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
-    password_hash = db.Column(db.String(200), nullable=False)
+    password_hash = db.Column(db.Text, nullable=False)
 
 class Patient(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     full_name = db.Column(db.String(100), nullable=False)
     ci = db.Column(db.String(20), unique=True, nullable=False)
+    birth_date = db.Column(db.String(20))
     age = db.Column(db.Integer, nullable=False)
     gender = db.Column(db.String(10), nullable=False)
     phone = db.Column(db.String(20))
     sanatorio = db.Column(db.String(100), nullable=False)
+    procedencia = db.Column(db.String(100))
+    profession = db.Column(db.String(100))
     pathology_type = db.Column(db.String(100))
     evolution_years = db.Column(db.Integer)
+    antecedentes_familiares = db.Column(db.Text)
+    antecedentes_personales = db.Column(db.Text)
     comorbidities = db.Column(db.String(200))
+    tratamiento_base = db.Column(db.Text)
     records = db.relationship('MedicalRecord', backref='patient', lazy=True, cascade="all, delete-orphan")
 
 class MedicalRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'), nullable=False)
     date = db.Column(db.String(20), nullable=False)
-    weight = db.Column(db.Float)
+    
+    # Antropometría (Hoja Controles)
     height = db.Column(db.Float)
-    waist = db.Column(db.Float)
-    body_fat = db.Column(db.Float)
-    muscle_mass = db.Column(db.Float)
+    weight = db.Column(db.Float)
+    body_fat_kg = db.Column(db.Float)
+    body_fat_pct = db.Column(db.Float)
     visceral_fat = db.Column(db.Float)
+    muscle_mass_kg = db.Column(db.Float)
+    muscle_mass_pct = db.Column(db.Float)
+    basal_metabolism = db.Column(db.Float)
+    waist = db.Column(db.Float) # Circunferencia de abdomen
+    
+    # Laboratorios (Hoja Laboratorios)
     glucose = db.Column(db.Float)
     insulin = db.Column(db.Float)
     hba1c = db.Column(db.Float)
+    triglycerides = db.Column(db.Float)
     cholesterol_tot = db.Column(db.Float)
     hdl = db.Column(db.Float)
     ldl = db.Column(db.Float)
-    triglycerides = db.Column(db.Float)
-    bp_systolic = db.Column(db.Integer)
-    bp_diastolic = db.Column(db.Integer)
+    vldl = db.Column(db.Float)
+    uric_acid = db.Column(db.Float)
+    got = db.Column(db.Float)
+    gpt = db.Column(db.Float)
+    fa = db.Column(db.Float)
+    bili_tot = db.Column(db.Float)
+    bili_dir = db.Column(db.Float)
+    bili_ind = db.Column(db.Float)
+    urea = db.Column(db.Float)
     creatinine = db.Column(db.Float)
-    egfr = db.Column(db.Float)
-    albuminuria = db.Column(db.Float)
-    alt_tgp = db.Column(db.Float)
-    ast_tgo = db.Column(db.Float)
-    medications = db.Column(db.String(300))
-    motivo_consulta = db.Column(db.Text)
-    examen_fisico = db.Column(db.Text)
+    tsh = db.Column(db.Float)
+    t4 = db.Column(db.Float)
+    t3 = db.Column(db.Float)
+    anti_tpo = db.Column(db.Float)
+    vit_d = db.Column(db.Float)
+    vit_b12 = db.Column(db.Float)
+    calcium = db.Column(db.Float)
+    magnesium = db.Column(db.Float)
+    phosphorus = db.Column(db.Float)
+    chlorine = db.Column(db.Float)
+    
+    # Estudios
+    ecografia_abdominal = db.Column(db.Text)
+    ecografia_tiroidea = db.Column(db.Text)
+    otros_estudios = db.Column(db.Text)
+    
+    # Indicaciones y Tratamiento (Hoja Indicaciones)
+    indicaciones_tratamiento = db.Column(db.Text)
+    medications = db.Column(db.Text)
+    proximo_control = db.Column(db.String(30))
     notes = db.Column(db.Text)
     conducta_medica = db.Column(db.Text)
 
     @property
     def bmi(self):
         if self.weight and self.height and self.height > 0:
-            return round(self.weight / (self.height ** 2), 2)
+            h_m = self.height / 100.0 if self.height > 3 else self.height
+            return round(self.weight / (h_m ** 2), 2)
         return 0
 
     @property
@@ -77,28 +111,17 @@ class MedicalRecord(db.Model):
     @property
     def waist_height_ratio(self):
         if self.waist and self.height and self.height > 0:
-            height_cm = self.height * 100
-            return round(self.waist / height_cm, 2)
-        return None
-
-    @property
-    def basal_metabolic_rate(self):
-        if self.weight and self.height and self.patient and self.patient.age:
-            height_cm = self.height * 100
-            weight_kg = self.weight
-            age = self.patient.age
-            if self.patient.gender == 'Hombre':
-                return round((10 * weight_kg) + (6.25 * height_cm) - (5 * age) + 5, 1)
-            else:
-                return round((10 * weight_kg) + (6.25 * height_cm) - (5 * age) - 161, 1)
+            h_cm = self.height if self.height > 3 else self.height * 100
+            return round(self.waist / h_cm, 2)
         return None
 
 with app.app_context():
     db.create_all()
-    # Crear usuario de prueba por defecto si no existe
-    if not User.query.filter_by(username='dra.metabolisys').first():
-        hashed_pw = generate_password_hash('metabo2026')
-        admin = User(username='dra.metabolisys', password_hash=hashed_pw)
+    # Usuario por defecto de emergencia / acceso directo
+    admin_user = User.query.filter_by(username='admin').first()
+    if not admin_user:
+        hashed_pw = generate_password_hash('123', method='pbkdf2:sha256')
+        admin = User(username='admin', password_hash=hashed_pw)
         db.session.add(admin)
         db.session.commit()
 
@@ -117,17 +140,13 @@ def login():
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
         
-        # Acceso directo y ultra simple
         if username == 'admin' and password == '123':
             session['user_id'] = 1
             session['username'] = 'admin'
             return redirect(url_for('index'))
         else:
             error = 'Usuario o contraseña incorrectos. Usa: admin / 123'
-            
     return render_template('login.html', error=error)
-
-
 
 @app.route('/logout')
 def logout():
@@ -162,13 +181,19 @@ def new_patient():
         patient = Patient(
             full_name=request.form['full_name'],
             ci=request.form['ci'],
-            age=int(request.form['age']),
+            birth_date=request.form.get('birth_date'),
+            age=int(request.form['age'] or 0),
             gender=request.form['gender'],
-            phone=request.form['phone'],
+            phone=request.form.get('phone'),
             sanatorio=request.form['sanatorio'],
-            pathology_type=request.form['pathology_type'],
-            evolution_years=int(request.form['evolution_years'] or 0),
-            comorbidities=request.form['comorbidities']
+            procedencia=request.form.get('procedencia'),
+            profession=request.form.get('profession'),
+            pathology_type=request.form.get('pathology_type'),
+            evolution_years=int(request.form.get('evolution_years') or 0),
+            antecedentes_familiares=request.form.get('antecedentes_familiares'),
+            antecedentes_personales=request.form.get('antecedentes_personales'),
+            comorbidities=request.form.get('comorbidities'),
+            tratamiento_base=request.form.get('tratamiento_base')
         )
         db.session.add(patient)
         db.session.commit()
@@ -180,8 +205,8 @@ def new_patient():
 def patient_detail(id):
     patient = Patient.query.get_or_404(id)
     dates = [r.date for r in patient.records]
-    hba1c_data = [r.hba1c for r in patient.records]
-    weight_data = [r.weight for r in patient.records]
+    hba1c_data = [r.hba1c for r in patient.records if r.hba1c]
+    weight_data = [r.weight for r in patient.records if r.weight]
 
     return render_template(
         'patient_detail.html', 
@@ -199,72 +224,58 @@ def new_record(patient_id):
         record = MedicalRecord(
             patient_id=patient.id,
             date=request.form['date'],
-            weight=float(request.form['weight'] or 0),
-            height=float(request.form['height'] or 0),
-            waist=float(request.form['waist'] or 0),
-            body_fat=float(request.form['body_fat'] or 0),
-            muscle_mass=float(request.form['muscle_mass'] or 0),
-            visceral_fat=float(request.form['visceral_fat'] or 0),
-            glucose=float(request.form['glucose'] or 0),
-            insulin=float(request.form['insulin'] or 0),
-            hba1c=float(request.form['hba1c'] or 0),
-            cholesterol_tot=float(request.form['cholesterol_tot'] or 0),
-            hdl=float(request.form['hdl'] or 0),
-            ldl=float(request.form['ldl'] or 0),
-            triglycerides=float(request.form['triglycerides'] or 0),
-            bp_systolic=int(request.form['bp_systolic'] or 0),
-            bp_diastolic=int(request.form['bp_diastolic'] or 0),
-            creatinine=float(request.form['creatinine'] or 0),
-            egfr=float(request.form['egfr'] or 0),
-            albuminuria=float(request.form['albuminuria'] or 0),
-            alt_tgp=float(request.form['alt_tgp'] or 0),
-            ast_tgo=float(request.form['ast_tgo'] or 0),
-            medications=request.form['medications'],
-            motivo_consulta=request.form['motivo_consulta'],
-            examen_fisico=request.form['examen_fisico'],
-            notes=request.form['notes'],
-            conducta_medica=request.form['conducta_medica']
+            height=float(request.form.get('height') or 0),
+            weight=float(request.form.get('weight') or 0),
+            body_fat_kg=float(request.form.get('body_fat_kg') or 0),
+            body_fat_pct=float(request.form.get('body_fat_pct') or 0),
+            visceral_fat=float(request.form.get('visceral_fat') or 0),
+            muscle_mass_kg=float(request.form.get('muscle_mass_kg') or 0),
+            muscle_mass_pct=float(request.form.get('muscle_mass_pct') or 0),
+            basal_metabolism=float(request.form.get('basal_metabolism') or 0),
+            waist=float(request.form.get('waist') or 0),
+            
+            glucose=float(request.form.get('glucose') or 0),
+            insulin=float(request.form.get('insulin') or 0),
+            hba1c=float(request.form.get('hba1c') or 0),
+            triglycerides=float(request.form.get('triglycerides') or 0),
+            cholesterol_tot=float(request.form.get('cholesterol_tot') or 0),
+            hdl=float(request.form.get('hdl') or 0),
+            ldl=float(request.form.get('ldl') or 0),
+            vldl=float(request.form.get('vldl') or 0),
+            uric_acid=float(request.form.get('uric_acid') or 0),
+            got=float(request.form.get('got') or 0),
+            gpt=float(request.form.get('gpt') or 0),
+            fa=float(request.form.get('fa') or 0),
+            bili_tot=float(request.form.get('bili_tot') or 0),
+            bili_dir=float(request.form.get('bili_dir') or 0),
+            bili_ind=float(request.form.get('bili_ind') or 0),
+            urea=float(request.form.get('urea') or 0),
+            creatinine=float(request.form.get('creatinine') or 0),
+            tsh=float(request.form.get('tsh') or 0),
+            t4=float(request.form.get('t4') or 0),
+            t3=float(request.form.get('t3') or 0),
+            anti_tpo=float(request.form.get('anti_tpo') or 0),
+            vit_d=float(request.form.get('vit_d') or 0),
+            vit_b12=float(request.form.get('vit_b12') or 0),
+            calcium=float(request.form.get('calcium') or 0),
+            magnesium=float(request.form.get('magnesium') or 0),
+            phosphorus=float(request.form.get('phosphorus') or 0),
+            chlorine=float(request.form.get('chlorine') or 0),
+            
+            ecografia_abdominal=request.form.get('ecografia_abdominal'),
+            ecografia_tiroidea=request.form.get('ecografia_tiroidea'),
+            otros_estudios=request.form.get('otros_estudios'),
+            
+            indicaciones_tratamiento=request.form.get('indicaciones_tratamiento'),
+            medications=request.form.get('medications'),
+            proximo_control=request.form.get('proximo_control'),
+            notes=request.form.get('notes'),
+            conducta_medica=request.form.get('conducta_medica')
         )
         db.session.add(record)
         db.session.commit()
         return redirect(url_for('patient_detail', id=patient.id))
     return render_template('new_record.html', patient=patient)
-
-@app.route('/import/excel', methods=['POST'])
-@login_required
-def import_excel():
-    if 'excel_file' not in request.files:
-        return redirect(url_for('index'))
-    file = request.files['excel_file']
-    if file.filename == '':
-        return redirect(url_for('index'))
-    
-    if file and file.filename.endswith('.xlsx'):
-        try:
-            wb = openpyxl.load_workbook(file)
-            sheet = wb.active
-            for row in sheet.iter_rows(min_row=2, values_only=True):
-                if row[0] and row[1]:
-                    full_name = str(row[0]).strip()
-                    ci = str(row[1]).strip()
-                    existing = Patient.query.filter_by(ci=ci).first()
-                    if not existing:
-                        p = Patient(
-                            full_name=full_name,
-                            ci=ci,
-                            age=int(row[2]) if row[2] else 30,
-                            gender=str(row[3]).strip() if row[3] else 'Hombre',
-                            phone=str(row[4]).strip() if row[4] else '',
-                            sanatorio=str(row[5]).strip() if row[5] else 'Consultorio Principal',
-                            pathology_type=str(row[6]).strip() if row[6] else 'Diabetes Tipo 2',
-                            evolution_years=int(row[7]) if row[7] else 0,
-                            comorbidities=str(row[8]).strip() if row[8] else ''
-                        )
-                        db.session.add(p)
-            db.session.commit()
-        except Exception as e:
-            print(f"Error al importar Excel: {e}")
-    return redirect(url_for('index'))
 
 @app.route('/export/excel')
 @login_required
@@ -272,30 +283,36 @@ def export_excel():
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
-        'ID', 'Nombre', 'CI', 'Edad', 'Género', 'Teléfono', 'Sanatorio', 'Patología', 'Años Evolución', 'Comorbilidades',
-        'Fecha Control', 'Peso (kg)', 'Altura (m)', 'IMC', 'Cintura (cm)', '% Grasa', 'Masa Musc', 'Grasa Visceral',
-        'Glucemia', 'Insulina', 'HbA1c (%)', 'Col. Tot', 'HDL', 'LDL', 'Triglicéridos', 'PA Sist', 'PA Diast',
-        'Creatinina', 'eGFR', 'Albuminuria', 'ALT/TGP', 'AST/TGO', 'HOMA-IR', 'Cintura/Altura', 'Gasto Basal', 
-        'Motivo Consulta', 'Examen Físico', 'Criterio Médico', 'Conducta / Plan', 'Medicación'
+        'ID', 'Nombre', 'CI', 'Edad', 'Género', 'Teléfono', 'Sanatorio', 'Procedencia', 'Profesión', 'Patología', 
+        'Años Evolución', 'Antecedentes Familiares', 'Antecedentes Personales', 'Comorbilidades', 'Tratamiento Base',
+        'Fecha Control', 'Altura (cm)', 'Peso (kg)', 'IMC', 'Grasa Corp (kg)', 'Grasa Corp (%)', 'Grasa Visceral', 
+        'Músculo (kg)', 'Músculo (%)', 'Metabolismo Basal', 'Cintura (cm)', 'Glicemia', 'Insulina', 'HbA1c (%)', 
+        'Triglicéridos', 'Col. Tot', 'HDL', 'LDL', 'VLDL', 'Ácido Úrico', 'GOT', 'GPT', 'FA', 'Bili Tot', 'Bili Dir', 
+        'Bili Ind', 'Urea', 'Creatinina', 'TSH', 'T4', 'T3', 'Anti-TPO', 'Vit D', 'Vit B12', 'Calcio', 'Magnesio', 
+        'Fósforo', 'Cloro', 'Eco Abdominal', 'Eco Tiroidea', 'Otros Estudios', 'Indicaciones / Tratamiento', 'Medicación', 
+        'Próximo Control', 'HOMA-IR', 'Cintura/Altura', 'Conducta Médica'
     ])
     patients = Patient.query.all()
     for p in patients:
         if p.records:
             for r in p.records:
                 writer.writerow([
-                    p.id, p.full_name, p.ci, p.age, p.gender, p.phone, p.sanatorio, p.pathology_type, p.evolution_years, p.comorbidities,
-                    r.date, r.weight, r.height, r.bmi, r.waist, r.body_fat, r.muscle_mass, r.visceral_fat,
-                    r.glucose, r.insulin, r.hba1c, r.cholesterol_tot, r.hdl, r.ldl, r.triglycerides, r.bp_systolic, r.bp_diastolic,
-                    r.creatinine, r.egfr, r.albuminuria, r.alt_tgp, r.ast_tgo, r.homair, r.waist_height_ratio, r.basal_metabolic_rate,
-                    r.motivo_consulta, r.examen_fisico, r.notes, r.conducta_medica, r.medications
+                    p.id, p.full_name, p.ci, p.age, p.gender, p.phone, p.sanatorio, p.procedencia, p.profession, p.pathology_type,
+                    p.evolution_years, p.antecedentes_familiares, p.antecedentes_personales, p.comorbidities, p.tratamiento_base,
+                    r.date, r.height, r.weight, r.bmi, r.body_fat_kg, r.body_fat_pct, r.visceral_fat, r.muscle_mass_kg, r.muscle_mass_pct,
+                    r.basal_metabolism, r.waist, r.glucose, r.insulin, r.hba1c, r.triglycerides, r.cholesterol_tot, r.hdl, r.ldl,
+                    r.vldl, r.uric_acid, r.got, r.gpt, r.fa, r.bili_tot, r.bili_dir, r.bili_ind, r.urea, r.creatinine,
+                    r.tsh, r.t4, r.t3, r.anti_tpo, r.vit_d, r.vit_b12, r.calcium, r.magnesium, r.phosphorus, r.chlorine,
+                    r.ecografia_abdominal, r.ecografia_tiroidea, r.otros_estudios, r.indicaciones_tratamiento, r.medications,
+                    r.proximo_control, r.homair, r.waist_height_ratio, r.conducta_medica
                 ])
         else:
-            writer.writerow([p.id, p.full_name, p.ci, p.age, p.gender, p.phone, p.sanatorio, p.pathology_type, p.evolution_years, p.comorbidities, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''])
+            writer.writerow([p.id, p.full_name, p.ci, p.age, p.gender, p.phone, p.sanatorio, p.procedencia, p.profession, p.pathology_type, p.evolution_years, p.antecedentes_familiares, p.antecedentes_personales, p.comorbidities, p.tratamiento_base, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''])
     output.seek(0)
     return Response(
         output.getvalue(),
         mimetype="text/csv",
-        headers={"Content-Disposition": "attachment;filename=base_datos_investigacion_metabolica.csv"}
+        headers={"Content-Disposition": "attachment;filename=matriz_metabolica_pacientes.csv"}
     )
 
 @app.route('/report/pdf/<int:patient_id>')
@@ -307,26 +324,27 @@ def generate_pdf(patient_id):
     p.setFont("Helvetica-Bold", 16)
     p.drawString(50, 750, "METABOLISYS - INFORME CLÍNICO METABÓLICO")
     p.setFont("Helvetica", 10)
-    p.drawString(50, 735, f"Sanatorio: {patient.sanatorio} | Patología: {patient.pathology_type}")
+    p.drawString(50, 735, f"Sanatorio: {patient.sanatorio} | Patología: {patient.pathology_type or 'N/D'}")
     p.line(50, 725, 560, 725)
     p.setFont("Helvetica-Bold", 12)
     p.drawString(50, 700, f"Paciente: {patient.full_name}")
     p.setFont("Helvetica", 10)
-    p.drawString(50, 685, f"CI: {patient.ci} | Edad: {patient.age} años | Género: {patient.gender} | Años Evolución: {patient.evolution_years}")
+    p.drawString(50, 685, f"CI: {patient.ci} | Edad: {patient.age} años | Género: {patient.gender} | Tel: {patient.phone or 'N/D'}")
+    
     y = 650
     p.setFont("Helvetica-Bold", 11)
-    p.drawString(50, y, "Evolución y Notas Clínicas Recientes:")
+    p.drawString(50, y, "Evolución y Controles Recientes:")
     y -= 20
     for r in patient.records[-3:]:
         p.setFont("Helvetica-Bold", 9)
-        p.drawString(50, y, f"Fecha: {r.date} | Peso: {r.weight}kg | IMC: {r.bmi} | HbA1c: {r.hba1c}% | Gluc: {r.glucose}mg/dL")
+        p.drawString(50, y, f"Fecha: {r.date} | Peso: {r.weight}kg | IMC: {r.bmi} | HbA1c: {r.hba1c}% | Glicemia: {r.glucose}mg/dL")
         y -= 15
         p.setFont("Helvetica", 9)
-        if r.motivo_consulta:
-            p.drawString(60, y, f"• Motivo: {r.motivo_consulta}")
+        if r.indicaciones_tratamiento:
+            p.drawString(60, y, f"• Indicaciones: {r.indicaciones_tratamiento}")
             y -= 14
         if r.conducta_medica:
-            p.drawString(60, y, f"• Conducta / Plan: {r.conducta_medica}")
+            p.drawString(60, y, f"• Conducta: {r.conducta_medica}")
             y -= 14
         y -= 10
         if y < 50:
@@ -335,7 +353,7 @@ def generate_pdf(patient_id):
     p.showPage()
     p.save()
     buffer.seek(0)
-    return send_file(buffer, as_attachment=True, download_name=f"Informe_Metabolisys_{patient.full_name}.pdf", mimetype='application/pdf')
+    return send_file(buffer, as_attachment=True, download_name=f"Informe_Matriz_{patient.full_name}.pdf", mimetype='application/pdf')
 
 @app.route('/report/recipe/<int:patient_id>')
 @login_required
