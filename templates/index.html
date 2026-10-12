@@ -1,25 +1,56 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-people-fill"></i> Directorio General de Pacientes</h2>
-    <div>
-        <a href="/export/excel" class="btn btn-success me-2"><i class="bi bi-file-earmark-excel"></i> Exportar Todo (Investigación)</a>
-        <a href="/patient/new" class="btn btn-primary"><i class="bi bi-person-plus-fill"></i> Nuevo Paciente</a>
-    </div>
-</div>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Directorio de Pacientes - METABOLISYS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #121212; color: #e0e0e0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .navbar { background-color: #1e1e1e; border-bottom: 1px solid #333; }
+        .card { background-color: #1e1e1e; border: 1px solid #333; color: #fff; }
+        .table { color: #e0e0e0; border-color: #333; }
+        .table-dark { background-color: #242424; }
+        .form-control, .form-select { background-color: #2a2a2a; border: 1px solid #444; color: #fff; }
+        .form-control:focus, .form-select:focus { background-color: #333; border-color: #ff6b6b; color: #fff; box-shadow: none; }
+        .btn-primary { background-color: #e63946; border: none; }
+        .btn-primary:hover { background-color: #d90429; }
+        .btn-success { background-color: #2a9d8f; border: none; }
+        .btn-success:hover { background-color: #21867a; }
+        .btn-dark-custom { background-color: #2a2a2a; color: #fff; border: 1px solid #444; }
+        .btn-dark-custom:hover { background-color: #333; color: #fff; }
+    </style>
+</head>
+<body class="py-0">
 
-<!-- Barra de Búsqueda Instantánea y Filtros -->
-<div class="card shadow-sm mb-4">
-    <div class="card-body bg-white">
-        <form method="GET" action="/" class="row g-3 align-items-center">
+    <!-- Navbar Superior -->
+    <nav class="navbar navbar-dark px-4 py-3 mb-4 shadow-sm">
+        <div class="container-fluid">
+            <span class="navbar-brand fw-bold text-danger fs-4">❤️ Metabolisys</span>
+            <div class="d-flex align-items-center gap-3">
+                <span class="text-muted small">👤 {{ session.get('username', 'admin') }}</span>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Salir</a>
+            </div>
+        </div>
+    </nav>
+
+<div class="container pb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h2 class="text-light fw-bold">👥 Directorio General de Pacientes</h2>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('export_excel') }}" class="btn btn-success btn-sm">📥 Exportar Todo (Investigación)</a>
+            <a href="{{ url_for('new_patient', sanatorio=current_sanatorio) }}" class="btn btn-primary btn-sm">➕ Nuevo Paciente</a>
+        </div>
+    </div>
+
+    <!-- Barra de Búsqueda y Filtro por Sanatorio -->
+    <div class="card p-3 mb-4 shadow-sm">
+        <form method="GET" action="{{ url_for('index') }}" class="row g-2 align-items-center">
             <div class="col-md-5">
-                <div class="input-group">
-                    <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
-                    <input type="text" class="form-control" name="q" placeholder="Buscar por Nombre o CI..." value="{{ search_query }}">
-                </div>
+                <input type="text" class="form-control" name="q" placeholder="Buscar por Nombre o CI..." value="{{ search_query }}">
             </div>
             <div class="col-md-4">
-                <select name="sanatorio" class="form-select">
+                <select class="form-select" name="sanatorio">
                     <option value="">-- Todos los Sanatorios --</option>
                     {% for s in sanatorios %}
                     <option value="{{ s }}" {% if current_sanatorio == s %}selected{% endif %}>{{ s }}</option>
@@ -27,58 +58,50 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <button type="submit" class="btn btn-dark w-100"><i class="bi bi-filter"></i> Filtrar / Buscar</button>
+                <button type="submit" class="btn btn-dark-custom w-100">🔍 Filtrar / Buscar</button>
             </div>
         </form>
     </div>
-</div>
 
-<!-- Panel de Importación Masiva de Excel -->
-<div class="card shadow-sm mb-4 border-info">
-    <div class="card-body bg-light d-flex justify-content-between align-items-center">
-        <div>
-            <h6 class="text-info fw-bold mb-1"><i class="bi bi-file-earmark-arrow-up"></i> ¿Tienes planillas de Excel anteriores?</h6>
-            <p class="text-muted small mb-0">Sube tu archivo .xlsx con las columnas: Nombre, CI, Edad, Género, Teléfono, Sanatorio, Patología, Años Evolución, Comorbilidades.</p>
+    <!-- Tabla de Pacientes -->
+    <div class="card p-3 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-dark table-striped table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Nombre Completo</th>
+                        <th>CI</th>
+                        <th>Sanatorio</th>
+                        <th>Patología Principal</th>
+                        <th>Edad / Género</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if patients %}
+                        {% for p in patients %}
+                        <tr>
+                            <td class="fw-bold text-light">{{ p.full_name }}</td>
+                            <td>{{ p.ci }}</td>
+                            <td>{{ p.sanatorio }}</td>
+                            <td>{{ p.pathology_type or 'Diabetes / Obesidad' }}</td>
+                            <td>{{ p.age }} años / {{ p.gender }}</td>
+                            <td class="text-end">
+                                <a href="{{ url_for('patient_detail', id=p.id) }}" class="btn btn-outline-light btn-sm">Ver Ficha</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">No se encontraron pacientes registrados con esos criterios.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
         </div>
-        <form action="/import/excel" method="POST" enctype="multipart/form-data" class="d-flex align-items-center gap-2">
-            <input type="file" class="form-control form-control-sm" name="excel_file" accept=".xlsx" required>
-            <button type="submit" class="btn btn-sm btn-outline-info text-dark fw-bold text-nowrap"><i class="bi bi-upload"></i> Importar Masivo</button>
-        </form>
     </div>
 </div>
 
-<div class="card shadow-sm">
-    <div class="card-body">
-        <table class="table table-hover align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th>Nombre Completo</th>
-                    <th>CI</th>
-                    <th>Sanatorio</th>
-                    <th>Patología Principal</th>
-                    <th>Edad / Género</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for p in patients %}
-                <tr>
-                    <td><strong>{{ p.full_name }}</strong></td>
-                    <td>{{ p.ci }}</td>
-                    <td><span class="badge bg-info text-dark">{{ p.sanatorio }}</span></td>
-                    <td><span class="badge bg-danger">{{ p.pathology_type }}</span></td>
-                    <td>{{ p.age }} años ({{ p.gender }})</td>
-                    <td>
-                        <a href="/patient/{{ p.id }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i> Historia Clínica</a>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="6" class="text-center text-muted py-4">No se encontraron pacientes registrados con esos criterios.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-{% endblock %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
