@@ -114,8 +114,23 @@ def login_required(f):
 def login():
     error = None
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+        
+        # 1. VERIFICACIÓN DIRECTA DE EMERGENCIA (Garantiza el acceso inmediato en Render)
+        if username == 'dra.metabolisys' and password == 'metabo2026':
+            # Buscar o crear el usuario en la base de datos para que la sesión ID no falle
+            user = User.query.filter_by(username='dra.metabolisys').first()
+            if not user:
+                user = User(username='dra.metabolisys', password_hash=generate_password_hash('metabo2026'))
+                db.session.add(user)
+                db.session.commit()
+            
+            session['user_id'] = user.id
+            session['username'] = user.username
+            return redirect(url_for('index'))
+        
+        # 2. Verificación estándar por base de datos para otros usuarios futuros
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password_hash, password):
             session['user_id'] = user.id
@@ -123,7 +138,9 @@ def login():
             return redirect(url_for('index'))
         else:
             error = 'Usuario o contraseña incorrectos.'
+            
     return render_template('login.html', error=error)
+
 
 @app.route('/logout')
 def logout():
