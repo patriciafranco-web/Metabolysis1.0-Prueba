@@ -36,6 +36,21 @@ class Patient(db.Model):
     antecedentes_personales = db.Column(db.Text)
     comorbidities = db.Column(db.String(200))
     tratamiento_base = db.Column(db.Text)
+    
+    # Nuevos campos de filiación, ginecología y estilo de vida
+    historial_cirugias = db.Column(db.Text)
+    alergia_farmacos = db.Column(db.Text)
+    cant_hijos = db.Column(db.String(50))
+    menarca = db.Column(db.String(50))
+    menstruacion_regular = db.Column(db.String(50))
+    anticonceptivos = db.Column(db.String(50))
+    checklist_glp1_notas = db.Column(db.Text)
+    calidad_sueno = db.Column(db.String(100))
+    actividad_fisica = db.Column(db.String(100))
+    fuma_alcohol = db.Column(db.String(100))
+    veces_come = db.Column(db.String(100))
+    consume_gaseosa_jugo = db.Column(db.String(100))
+
     records = db.relationship('MedicalRecord', backref='patient', lazy=True, cascade="all, delete-orphan")
 
 class MedicalRecord(db.Model):
@@ -192,7 +207,19 @@ def new_patient():
             antecedentes_familiares=request.form.get('antecedentes_familiares'),
             antecedentes_personales=request.form.get('antecedentes_personales'),
             comorbidities=request.form.get('comorbidities'),
-            tratamiento_base=request.form.get('tratamiento_base')
+            tratamiento_base=request.form.get('tratamiento_base'),
+            historial_cirugias=request.form.get('historial_cirugias'),
+            alergia_farmacos=request.form.get('alergia_farmacos'),
+            cant_hijos=request.form.get('cant_hijos'),
+            menarca=request.form.get('menarca'),
+            menstruacion_regular=request.form.get('menstruacion_regular'),
+            anticonceptivos=request.form.get('anticonceptivos'),
+            checklist_glp1_notas=request.form.get('checklist_glp1_notas'),
+            calidad_sueno=request.form.get('calidad_sueno'),
+            actividad_fisica=request.form.get('actividad_fisica'),
+            fuma_alcohol=request.form.get('fuma_alcohol'),
+            veces_come=request.form.get('veces_come'),
+            consume_gaseosa_jugo=request.form.get('consume_gaseosa_jugo')
         )
         db.session.add(patient)
         db.session.commit()
@@ -284,6 +311,7 @@ def export_excel():
     writer.writerow([
         'ID', 'Nombre', 'CI', 'Edad', 'Género', 'Teléfono', 'Sanatorio', 'Procedencia', 'Profesión', 'Patología', 
         'Años Evolución', 'Antecedentes Familiares', 'Antecedentes Personales', 'Comorbilidades', 'Tratamiento Base',
+        'Cirugías', 'Alergias', 'Sueño', 'Actividad Física', 'Fuma/Alcohol', 'Comidas/Día', 'Gaseosa/Jugo',
         'Fecha Control', 'Altura (cm)', 'Peso (kg)', 'IMC', 'Grasa Corp (kg)', 'Grasa Corp (%)', 'Grasa Visceral', 
         'Músculo (kg)', 'Músculo (%)', 'Metabolismo Basal', 'Cintura (cm)', 'Glicemia', 'Insulina', 'HbA1c (%)', 
         'Triglicéridos', 'Col. Tot', 'HDL', 'LDL', 'VLDL', 'Ácido Úrico', 'GOT', 'GPT', 'FA', 'Bili Tot', 'Bili Dir', 
@@ -298,6 +326,7 @@ def export_excel():
                 writer.writerow([
                     p.id, p.full_name, p.ci, p.age, p.gender, p.phone, p.sanatorio, p.procedencia, p.profession, p.pathology_type,
                     p.evolution_years, p.antecedentes_familiares, p.antecedentes_personales, p.comorbidities, p.tratamiento_base,
+                    p.historial_cirugias, p.alergia_farmacos, p.calidad_sueno, p.actividad_fisica, p.fuma_alcohol, p.veces_come, p.consume_gaseosa_jugo,
                     r.date, r.height, r.weight, r.bmi, r.body_fat_kg, r.body_fat_pct, r.visceral_fat, r.muscle_mass_kg, r.muscle_mass_pct,
                     r.basal_metabolism, r.waist, r.glucose, r.insulin, r.hba1c, r.triglycerides, r.cholesterol_tot, r.hdl, r.ldl,
                     r.vldl, r.uric_acid, r.got, r.gpt, r.fa, r.bili_tot, r.bili_dir, r.bili_ind, r.urea, r.creatinine,
@@ -306,7 +335,7 @@ def export_excel():
                     r.proximo_control, r.homair, r.waist_height_ratio, r.conducta_medica
                 ])
         else:
-            writer.writerow([p.id, p.full_name, p.ci, p.age, p.gender, p.phone, p.sanatorio, p.procedencia, p.profession, p.pathology_type, p.evolution_years, p.antecedentes_familiares, p.antecedentes_personales, p.comorbidities, p.tratamiento_base, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''])
+            writer.writerow([p.id, p.full_name, p.ci, p.age, p.gender, p.phone, p.sanatorio, p.procedencia, p.profession, p.pathology_type, p.evolution_years, p.antecedentes_familiares, p.antecedentes_personales, p.comorbidities, p.tratamiento_base, p.historial_cirugias, p.alergia_farmacos, p.calidad_sueno, p.actividad_fisica, p.fuma_alcohol, p.veces_come, p.consume_gaseosa_jugo, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''])
     output.seek(0)
     return Response(
         output.getvalue(),
