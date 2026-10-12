@@ -1,138 +1,169 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2><i class="bi bi-person-badge"></i> {{ patient.full_name }}</h2>
-        <p class="text-muted mb-1">
-            Sanatorio: <strong>{{ patient.sanatorio }}</strong> | Patología: <span class="badge bg-danger">{{ patient.pathology_type }}</span> | Evolución: {{ patient.evolution_years }} años
-        </p>
-        <p class="text-muted mb-0">CI: {{ patient.ci }} | Edad: {{ patient.age }} años | Tel: {{ patient.phone }} | Comorbilidades: <em>{{ patient.comorbidities }}</em></p>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ patient.full_name }} - METABOLISYS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #121212; color: #e0e0e0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { background-color: #1e1e1e; border: 1px solid #333; color: #fff; }
+        .table { color: #e0e0e0; border-color: #333; }
+        .table-dark { background-color: #242424; }
+        .btn-primary { background-color: #e63946; border: none; }
+        .btn-primary:hover { background-color: #d90429; }
+    </style>
+</head>
+<body class="py-4">
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-light btn-sm mb-2">← Volver al Listado</a>
+            <h2 class="text-danger fw-bold mb-0">{{ patient.full_name }}</h2>
+            <p class="text-muted mb-0">CI: {{ patient.ci }} | Edad: {{ patient.age }} años | Género: {{ patient.gender }} | Sanatorio: {{ patient.sanatorio }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('new_record', patient_id=patient.id) }}" class="btn btn-primary btn-sm">➕ Nuevo Control</a>
+            <a href="{{ url_for('generate_pdf', patient_id=patient.id) }}" class="btn btn-outline-danger btn-sm">📄 Informe PDF</a>
+            <a href="{{ url_for('generate_recipe', patient_id=patient.id) }}" class="btn btn-outline-success btn-sm">💊 Receta</a>
+        </div>
     </div>
-    <div>
-        <a href="/report/recipe/{{ patient.id }}" class="btn btn-outline-dark" target="_blank"><i class="bi bi-prescription2"></i> Receta Médica</a>
-        <a href="/report/pdf/{{ patient.id }}" class="btn btn-danger" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Informe PDF</a>
-        <a href="/record/new/{{ patient.id }}" class="btn btn-success"><i class="bi bi-plus-circle"></i> Nuevo Control</a>
-        <a href="/" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
-    </div>
-</div>
 
-<div class="card shadow-sm mb-4">
-    <div class="card-header bg-white">
-        <h5 class="mb-0"><i class="bi bi-journal-medical"></i> Evolución Diabetológica y Metabólica Integral</h5>
+    <!-- Resumen de Filiación y Antecedentes -->
+    <div class="card p-3 mb-4 shadow-sm">
+        <h5 class="text-danger mb-3">📋 Antecedentes y Filiación</h5>
+        <div class="row">
+            <div class="col-md-3"><strong>Procedencia:</strong> {{ patient.procedencia or 'N/D' }}</div>
+            <div class="col-md-3"><strong>Profesión:</strong> {{ patient.profession or 'N/D' }}</div>
+            <div class="col-md-3"><strong>Teléfono:</strong> {{ patient.phone or 'N/D' }}</div>
+            <div class="col-md-3"><strong>Años Evolución:</strong> {{ patient.evolution_years or 0 }} años</div>
+        </div>
+        <hr class="border-secondary">
+        <div class="row">
+            <div class="col-md-4"><strong>Ant. Familiares:</strong> {{ patient.antecedentes_familiares or 'Ninguno' }}</div>
+            <div class="col-md-4"><strong>Ant. Personales:</strong> {{ patient.antecedentes_personales or 'Ninguno' }}</div>
+            <div class="col-md-4"><strong>Tratamiento Base:</strong> {{ patient.tratamiento_base or 'Ninguno' }}</div>
+        </div>
     </div>
-    <div class="card-body">
+
+    <!-- Gráficos de Evolución -->
+    {% if patient.records %}
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card p-3 shadow-sm">
+                <h6 class="text-danger mb-3">📈 Evolución del Peso (kg)</h6>
+                <canvas id="weightChart" height="120"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card p-3 shadow-sm">
+                <h6 class="text-danger mb-3">📈 Evolución HbA1c (%)</h6>
+                <canvas id="hba1cChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Historial de Controles -->
+    <div class="card p-3 shadow-sm">
+        <h5 class="text-danger mb-3">📊 Historial de Controles Clínicos</h5>
+        {% if patient.records %}
         <div class="table-responsive">
-            <table class="table table-bordered table-striped text-center align-middle small">
-                <thead class="table-light">
+            <table class="table table-dark table-striped table-hover align-middle">
+                <thead>
                     <tr>
                         <th>Fecha</th>
-                        <th>Peso / IMC</th>
-                        <th>HOMA-IR</th>
-                        <th>Glucemia</th>
+                        <th>Peso</th>
+                        <th>IMC</th>
+                        <th>Cintura</th>
                         <th>HbA1c</th>
-                        <th>Perfil Renal (Cr / eGFR)</th>
-                        <th>TGP (Hígado)</th>
-                        <th>PA</th>
-                        <th>Tratamiento / Medicación</th>
+                        <th>Glicemia</th>
+                        <th>HOMA-IR</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for r in patient.records %}
                     <tr>
-                        <td><strong>{{ r.date }}</strong></td>
-                        <td>{{ r.weight }} kg<br><span class="badge bg-secondary">IMC: {{ r.bmi }}</span></td>
-                        <td><strong>{{ r.homair if r.homair else 'N/A' }}</strong></td>
+                        <td>{{ r.date }}</td>
+                        <td>{{ r.weight }} kg</td>
+                        <td>{{ r.bmi }}</td>
+                        <td>{{ r.waist }} cm</td>
+                        <td>{{ r.hba1c }}%</td>
+                        <td>{{ r.glucose }} mg/dL</td>
+                        <td>{{ r.homair or 'N/D' }}</td>
                         <td>
-                            <span class="badge {% if r.glucose > 126 %}bg-danger{% else %}bg-success{% endif %}">
-                                {{ r.glucose }} mg/dL
-                            </span>
+                            <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="collapse" data-bs-target="#detalle-{{ r.id }}">Ver Detalle</button>
                         </td>
-                        <td>
-                            <span class="badge {% if r.hba1c > 7.0 %}bg-danger{% else %}bg-success{% endif %}">
-                                {{ r.hba1c }}%
-                            </span>
-                        </td>
-                        <td>{{ r.creatinine }} mg/dL<br><small>{{ r.egfr }} mL/min</small></td>
-                        <td>{{ r.alt_tgp }} U/L</td>
-                        <td>{{ r.bp_systolic }}/{{ r.bp_diastolic }}</td>
-                        <td class="text-start"><small>{{ r.medications }}</small></td>
                     </tr>
-                    {% else %}
                     <tr>
-                        <td colspan="9" class="text-muted py-4">No hay controles clínicos guardados todavía.</td>
+                        <td colspan="8" class="p-0">
+                            <div class="collapse p-3 bg-black" id="detalle-{{ r.id }}">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <h6 class="text-danger">Antropometría</h6>
+                                        <ul class="list-unstyled small mb-0">
+                                            <li>Estatura: {{ r.height }}</li>
+                                            <li>Grasa Corporal: {{ r.body_fat_kg }} kg ({{ r.body_fat_pct }}%)</li>
+                                            <li>Grasa Visceral: {{ r.visceral_fat }}</li>
+                                            <li>Músculo: {{ r.muscle_mass_kg }} kg ({{ r.muscle_mass_pct }}%)</li>
+                                            <li>Metabolismo Basal: {{ r.basal_metabolism }} kcal</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6 class="text-danger">Laboratorios Clave</h6>
+                                        <ul class="list-unstyled small mb-0">
+                                            <li>Triglicéridos: {{ r.triglycerides }}</li>
+                                            <li>Colesterol Tot/HDL/LDL: {{ r.cholesterol_tot }} / {{ r.hdl }} / {{ r.ldl }}</li>
+                                            <li>Creatinina / Urea: {{ r.creatinine }} / {{ r.urea }}</li>
+                                            <li>TSH / T4: {{ r.tsh }} / {{ r.t4 }}</li>
+                                            <li>Vit D / Vit B12: {{ r.vit_d }} / {{ r.vit_b12 }}</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6 class="text-danger">Tratamiento e Indicaciones</h6>
+                                        <p class="small mb-1"><strong>Indicaciones:</strong> {{ r.indicaciones_tratamiento or 'N/D' }}</p>
+                                        <p class="small mb-1"><strong>Medicación:</strong> {{ r.medications or 'N/D' }}</p>
+                                        <p class="small mb-0"><strong>Próximo Control:</strong> {{ r.proximo_control or 'N/D' }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+        {% else %}
+        <p class="text-muted text-center py-4">Aún no hay controles registrados para este paciente.</p>
+        {% endif %}
     </div>
 </div>
 
-<!-- Gráficos de Evolución -->
-<div class="row">
-    <div class="col-md-6 mb-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-white"><h5>📉 Evolución de HbA1c (%)</h5></div>
-            <div class="card-body">
-                <canvas id="hba1cChart"></canvas>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6 mb-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-white"><h5>📈 Evolución de Peso (kg)</h5></div>
-            <div class="card-body">
-                <canvas id="weightChart"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="chart-data" 
-     data-dates='{{ dates | tojson }}' 
-     data-hba1c='{{ hba1c_data | tojson }}' 
-     data-weight='{{ weight_data | tojson }}' 
-     style="display: none;"></div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% if patient.records %}
 <script>
-    const dataContainer = document.getElementById('chart-data');
-    const dates = JSON.parse(dataContainer.dataset.dates);
-    const hba1cData = JSON.parse(dataContainer.dataset.hba1c);
-    const weightData = JSON.parse(dataContainer.dataset.weight);
+    const dates = {{ dates | tojson }};
+    const weightData = {{ weight_data | tojson }};
+    const hba1cData = {{ hba1c_data | tojson }};
 
-    if (dates.length > 0) {
-        new Chart(document.getElementById('hba1cChart'), {
-            type: 'line',
-            data: {
-                labels: dates,
-                datasets: [{
-                    label: 'HbA1c (%)',
-                    data: hba1cData,
-                    borderColor: '#dc3545',
-                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
-                    fill: true,
-                    tension: 0.2
-                }]
-            },
-            options: { responsive: true }
-        });
-
+    if(weightData.length > 0) {
         new Chart(document.getElementById('weightChart'), {
             type: 'line',
-            data: {
-                labels: dates,
-                datasets: [{
-                    label: 'Peso (kg)',
-                    data: weightData,
-                    borderColor: '#0d6efd',
-                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                    fill: true,
-                    tension: 0.2
-                }]
-            },
-            options: { responsive: true }
+            data: { labels: dates, datasets: [{ label: 'Peso (kg)', data: weightData, borderColor: '#e63946', tension: 0.1 }] },
+            options: { responsive: true, plugins: { legend: { labels: { color: '#fff' } } }, scales: { x: { ticks: { color: '#aaa' } }, y: { ticks: { color: '#aaa' } } } }
+        });
+    }
+
+    if(hba1cData.length > 0) {
+        new Chart(document.getElementById('hba1cChart'), {
+            type: 'line',
+            data: { labels: dates, datasets: [{ label: 'HbA1c (%)', data: hba1cData, borderColor: '#3a86ff', tension: 0.1 }] },
+            options: { responsive: true, plugins: { legend: { labels: { color: '#fff' } } }, scales: { x: { ticks: { color: '#aaa' } }, y: { ticks: { color: '#aaa' } } } }
         });
     }
 </script>
-{% endblock %}
+{% endif %}
+</body>
+</html>
