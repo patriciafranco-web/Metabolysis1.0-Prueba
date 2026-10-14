@@ -26,17 +26,18 @@
             <h2 class="text-danger fw-bold mb-0">{{ patient.full_name }}</h2>
             <p class="text-muted mb-0">CI: {{ patient.ci }} | Edad: {{ patient.age }} años | Género: {{ patient.gender }} | Sanatorio: {{ patient.sanatorio }}</p>
         </div>
-        <div class="d-flex gap-2">
-            <a href="{{ url_for('new_record', patient_id=patient.id) }}" class="btn btn-primary btn-sm">➕ Nuevo Control</a>
+        <!-- BOTONES SUPERIORES ACTUALIZADOS CON EL ACCESO AL PLAN -->
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('new_record', patient_id=patient.id) }}" class="btn btn-primary btn-sm">➕ Nuevo Control (Peso/Medidas)</a>
+            <a href="{{ url_for('edit_treatment', patient_id=patient.id) }}" class="btn btn-warning btn-sm text-dark fw-bold">📋 Modificar Plan / Tratamiento</a>
             <a href="{{ url_for('generate_pdf', patient_id=patient.id) }}" class="btn btn-outline-danger btn-sm">📄 Informe PDF</a>
             <a href="{{ url_for('generate_recipe', patient_id=patient.id) }}" class="btn btn-outline-success btn-sm">💊 Receta</a>
         </div>
     </div>
 
-    <!-- Pestañas reorganizadas: "Control" como principal -->
     <ul class="nav nav-pills mb-3" id="patientTab" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="control-tab" data-bs-toggle="pill" data-bs-target="#control" type="button" role="tab">⚖️ Control</button>
+            <button class="nav-link active" id="control-tab" data-bs-toggle="pill" data-bs-target="#control" type="button" role="tab">⚖️ Control y Evolución</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="filiacion-tab" data-bs-toggle="pill" data-bs-target="#filiacion" type="button" role="tab">📑 Filiación</button>
@@ -45,7 +46,7 @@
             <button class="nav-link" id="laboratorios-tab" data-bs-toggle="pill" data-bs-target="#laboratorios" type="button" role="tab">🧪 Laboratorios</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="indicaciones-tab" data-bs-toggle="pill" data-bs-target="#indicaciones" type="button" role="tab">📋 Tratamiento</button>
+            <button class="nav-link" id="indicaciones-tab" data-bs-toggle="pill" data-bs-target="#indicaciones" type="button" role="tab">📋 Planes Anteriores</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="comparativa-tab" data-bs-toggle="pill" data-bs-target="#comparativa" type="button" role="tab">🔍 Comparativa Visual</button>
@@ -54,7 +55,6 @@
 
     <div class="tab-content" id="patientTabContent">
         
-        <!-- PESTAÑA PRINCIPAL: CONTROL -->
         <div class="tab-pane fade show active" id="control" role="tabpanel">
             {% if patient.records %}
             <div class="row mb-4">
@@ -120,7 +120,6 @@
             </div>
         </div>
 
-        <!-- PESTAÑA: FILIACIÓN -->
         <div class="tab-pane fade" id="filiacion" role="tabpanel">
             <div class="card p-4 shadow-sm mb-3">
                 <h5 class="text-danger mb-3">Datos de Filiación y Antecedentes</h5>
@@ -170,7 +169,6 @@
             </div>
         </div>
 
-        <!-- PESTAÑA: LABORATORIOS -->
         <div class="tab-pane fade" id="laboratorios" role="tabpanel">
             <div class="card p-3 shadow-sm">
                 <h5 class="text-danger mb-3">🧪 Historial de Laboratorios</h5>
@@ -211,10 +209,9 @@
             </div>
         </div>
 
-        <!-- PESTAÑA: TRATAMIENTO / PLAN -->
         <div class="tab-pane fade" id="indicaciones" role="tabpanel">
             <div class="card p-3 shadow-sm">
-                <h5 class="text-danger mb-3">📋 Indicaciones y Plan Terapéutico por Fecha</h5>
+                <h5 class="text-danger mb-3">📋 Historial de Planes y Tratamientos</h5>
                 {% if patient.records %}
                     {% for r in patient.records %}
                     <div class="border border-secondary rounded p-3 mb-3 bg-black">
@@ -227,12 +224,11 @@
                     </div>
                     {% endfor %}
                 {% else %}
-                <p class="text-muted text-center py-4">Aún no hay indicaciones registradas.</p>
+                <p class="text-muted text-center py-4">Aún no hay planes registrados.</p>
                 {% endif %}
             </div>
         </div>
 
-        <!-- PESTAÑA: COMPARATIVA VISUAL -->
         <div class="tab-pane fade" id="comparativa" role="tabpanel">
             <div class="card p-4 shadow-sm">
                 <h5 class="text-danger mb-4">🔍 Comparativa de Evolución (Antes vs. Actual)</h5>
