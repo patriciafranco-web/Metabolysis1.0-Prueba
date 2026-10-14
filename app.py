@@ -7,6 +7,7 @@ import io
 import csv
 import os
 import openpyxl
+from datetime import date
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
@@ -241,20 +242,20 @@ def new_patient():
             evolution_years=int(request.form.get('evolution_years') or 0),
             antecedentes_familiares=format_text(request.form.get('antecedentes_familiares')),
             antecedentes_personales=format_text(request.form.get('antecedentes_personales')),
-            comorbidities=request.form.get('comorbidities'),
-            tratamiento_base=request.form.get('tratamiento_base'),
+            comorbidities=format_text(request.form.get('comorbidities')),
+            tratamiento_base=format_text(request.form.get('tratamiento_base')),
             historial_cirugias=format_text(request.form.get('historial_cirugias')),
             alergia_farmacos=format_text(request.form.get('alergia_farmacos')),
-            cant_hijos=request.form.get('cant_hijos'),
+            cant_hijos=format_text(request.form.get('cant_hijos')),
             menarca=format_text(request.form.get('menarca')),
-            menstruacion_regular=request.form.get('menstruacion_regular'),
-            anticonceptivos=request.form.get('anticonceptivos'),
-            checklist_glp1_notas=request.form.get('checklist_glp1_notas'),
-            calidad_sueno=request.form.get('calidad_sueno'),
-            actividad_fisica=request.form.get('actividad_fisica'),
-            fuma_alcohol=request.form.get('fuma_alcohol'),
-            veces_come=request.form.get('veces_come'),
-            consume_gaseosa_jugo=request.form.get('consume_gaseosa_jugo')
+            menstruacion_regular=format_text(request.form.get('menstruacion_regular')),
+            anticonceptivos=format_text(request.form.get('anticonceptivos')),
+            checklist_glp1_notas=format_text(request.form.get('checklist_glp1_notas')),
+            calidad_sueno=format_text(request.form.get('calidad_sueno')),
+            actividad_fisica=format_text(request.form.get('actividad_fisica')),
+            fuma_alcohol=format_text(request.form.get('fuma_alcohol')),
+            veces_come=format_text(request.form.get('veces_come')),
+            consume_gaseosa_jugo=format_text(request.form.get('consume_gaseosa_jugo'))
         )
         patient.antecedentes_familiares = format_text(request.form.get('antecedentes_familiares'))
         patient.antecedentes_personales = format_text(request.form.get('antecedentes_personales'))
@@ -385,6 +386,28 @@ def new_record(patient_id):
         return redirect(url_for('patient_detail', id=patient.id))
     return render_template('new_record.html', patient=patient)
 
+# Nueva ruta independiente para modificar o crear el plan/tratamiento sin tocar pesos
+@app.route('/treatment/edit/<int:patient_id>', methods=['GET', 'POST'])
+@login_required
+def edit_treatment(patient_id):
+    patient = Patient.query.get_or_404(patient_id)
+    last_record = MedicalRecord.query.filter_by(patient_id=patient.id).order_by(MedicalRecord.id.desc()).first()
+    
+    if request.method == 'POST':
+        today_str = date.today().strftime('%Y-%m-%d')
+        if not last_record:
+            last_record = MedicalRecord(patient_id=patient.id, date=today_str)
+            db.session.add(last_record)
+            
+        last_record.indicaciones_tratamiento = format_text(request.form.get('indicaciones_tratamiento'))
+        last_record.medications = format_text(request.form.get('medications'))
+        last_record.proximo_control = request.form.get('proximo_control')
+        last_record.conducta_medica = format_text(request.form.get('conducta_medica'))
+        db.session.commit()
+        return redirect(url_for('patient_detail', id=patient.id))
+        
+    return render_template('edit_treatment.html', patient=patient, record=last_record)
+
 @app.route('/export/excel')
 @login_required
 def export_excel():
@@ -504,8 +527,6 @@ def generate_pdf(patient_id):
             [str(c_init), str(c_last), str(c_diff)]
         ]
         sum_table = Table(sum_data, colWidths=[180, 180, 180])
-        
-        # AQUÍ SE AGREGAN LOS RECUADROS Y BORDES (GRID) A LA TABLA DE RESUMEN
         sum_table.setStyle(TableStyle([
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
@@ -518,8 +539,8 @@ def generate_pdf(patient_id):
             ('TEXTCOLOR', (0,2), (-1,2), colors.HexColor('#006666')),
             ('TEXTCOLOR', (0,4), (-1,4), colors.HexColor('#006666')),
             ('TEXTCOLOR', (0,6), (-1,6), colors.HexColor('#006666')),
-            ('GRID', (0,0), (-1,-1), 0.75, colors.HexColor('#006666')), # Añade recuadros a todas las celdas
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f0f8f8')), # Fondo sutil para las etiquetas
+            ('GRID', (0,0), (-1,-1), 0.75, colors.HexColor('#006666')),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f0f8f8')),
             ('BACKGROUND', (0,2), (-1,2), colors.HexColor('#f0f8f8')),
             ('BACKGROUND', (0,4), (-1,4), colors.HexColor('#f0f8f8')),
             ('BACKGROUND', (0,6), (-1,6), colors.HexColor('#f0f8f8')),
