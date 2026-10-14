@@ -23,7 +23,8 @@
         <h2 class="text-center text-danger fw-bold">❤️ METABOLISYS</h2>
         <h4 class="text-center mb-4">Nuevo Control Clínico para: {{ patient.full_name }}</h4>
         
-        <form method="POST">
+        <!-- IMPORTANTE: enctype="multipart/form-data" para permitir subida de fotos -->
+        <form method="POST" enctype="multipart/form-data">
             <div class="mb-4">
                 <label class="form-label fw-bold">Fecha del Control *</label>
                 <input type="date" class="form-control" name="date" required style="max-width: 300px;">
@@ -41,7 +42,7 @@
                     <button class="nav-link" id="estudios-tab" data-bs-toggle="pill" data-bs-target="#estudios" type="button" role="tab">📋 Estudios</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="tratamiento-tab" data-bs-toggle="pill" data-bs-target="#tratamiento" type="button" role="tab">💊 Tratamiento / Indicaciones</button>
+                    <button class="nav-link" id="tratamiento-tab" data-bs-toggle="pill" data-bs-target="#tratamiento" type="button" role="tab">💊 Tratamiento / Fotos</button>
                 </li>
             </ul>
 
@@ -50,42 +51,15 @@
                 <div class="tab-pane fade show active" id="antropometria" role="tabpanel">
                     <h5 class="section-title">Antropometría y Composición Corporal</h5>
                     <div class="row g-3">
-                        <div class="col-md-3">
-                            <label class="form-label">Altura (cm)</label>
-                            <input type="number" step="0.1" class="form-control" name="height" placeholder="Ej. 165">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Peso (kg)</label>
-                            <input type="number" step="0.1" class="form-control" name="weight">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Cintura (cm)</label>
-                            <input type="number" step="0.1" class="form-control" name="waist">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Grasa Corporal (kg)</label>
-                            <input type="number" step="0.1" class="form-control" name="body_fat_kg">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Grasa Corporal (%)</label>
-                            <input type="number" step="0.1" class="form-control" name="body_fat_pct">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Grasa Visceral</label>
-                            <input type="number" step="0.1" class="form-control" name="visceral_fat">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Músculo Esquelético (kg)</label>
-                            <input type="number" step="0.1" class="form-control" name="muscle_mass_kg">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Músculo Esquelético (%)</label>
-                            <input type="number" step="0.1" class="form-control" name="muscle_mass_pct">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Metabolismo en Reposo (kcal)</label>
-                            <input type="number" step="0.1" class="form-control" name="basal_metabolism">
-                        </div>
+                        <div class="col-md-3"><label class="form-label">Altura (cm)</label><input type="number" step="0.1" class="form-control" name="height"></div>
+                        <div class="col-md-3"><label class="form-label">Peso (kg)</label><input type="number" step="0.1" class="form-control" name="weight"></div>
+                        <div class="col-md-3"><label class="form-label">Cintura (cm)</label><input type="number" step="0.1" class="form-control" name="waist"></div>
+                        <div class="col-md-3"><label class="form-label">Grasa Corporal (kg)</label><input type="number" step="0.1" class="form-control" name="body_fat_kg"></div>
+                        <div class="col-md-3"><label class="form-label">Grasa Corporal (%)</label><input type="number" step="0.1" class="form-control" name="body_fat_pct"></div>
+                        <div class="col-md-3"><label class="form-label">Grasa Visceral</label><input type="number" step="0.1" class="form-control" name="visceral_fat"></div>
+                        <div class="col-md-3"><label class="form-label">Músculo Esquelético (kg)</label><input type="number" step="0.1" class="form-control" name="muscle_mass_kg"></div>
+                        <div class="col-md-3"><label class="form-label">Músculo Esquelético (%)</label><input type="number" step="0.1" class="form-control" name="muscle_mass_pct"></div>
+                        <div class="col-md-4"><label class="form-label">Metabolismo en Reposo (kcal)</label><input type="number" step="0.1" class="form-control" name="basal_metabolism"></div>
                     </div>
                 </div>
 
@@ -93,40 +67,33 @@
                 <div class="tab-pane fade" id="laboratorios" role="tabpanel">
                     <h5 class="section-title">Laboratorios y Bioquímica</h5>
                     <div class="row g-3">
-                        <div class="col-md-3"><label class="form-label">Glicemia (mg/dL)</label><input type="number" step="0.1" class="form-control" name="glucose"></div>
-                        <div class="col-md-3"><label class="form-label">Insulina (uIU/mL)</label><input type="number" step="0.1" class="form-control" name="insulin"></div>
+                        <div class="col-md-3"><label class="form-label">Glicemia</label><input type="number" step="0.1" class="form-control" name="glucose"></div>
+                        <div class="col-md-3"><label class="form-label">Insulina</label><input type="number" step="0.1" class="form-control" name="insulin"></div>
                         <div class="col-md-3"><label class="form-label">HbA1c (%)</label><input type="number" step="0.01" class="form-control" name="hba1c"></div>
                         <div class="col-md-3"><label class="form-label">Triglicéridos</label><input type="number" step="0.1" class="form-control" name="triglycerides"></div>
-                        
                         <div class="col-md-3"><label class="form-label">Colesterol Total</label><input type="number" step="0.1" class="form-control" name="cholesterol_tot"></div>
-                        <div class="col-md-3"><label class="form-label">Colesterol HDL</label><input type="number" step="0.1" class="form-control" name="hdl"></div>
-                        <div class="col-md-3"><label class="form-label">Colesterol LDL</label><input type="number" step="0.1" class="form-control" name="ldl"></div>
-                        <div class="col-md-3"><label class="form-label">Colesterol VLDL</label><input type="number" step="0.1" class="form-control" name="vldl"></div>
-
+                        <div class="col-md-3"><label class="form-label">HDL</label><input type="number" step="0.1" class="form-control" name="hdl"></div>
+                        <div class="col-md-3"><label class="form-label">LDL</label><input type="number" step="0.1" class="form-control" name="ldl"></div>
+                        <div class="col-md-3"><label class="form-label">VLDL</label><input type="number" step="0.1" class="form-control" name="vldl"></div>
                         <div class="col-md-3"><label class="form-label">Ácido Úrico</label><input type="number" step="0.1" class="form-control" name="uric_acid"></div>
-                        <div class="col-md-3"><label class="form-label">GOT (AST)</label><input type="number" step="0.1" class="form-control" name="got"></div>
-                        <div class="col-md-3"><label class="form-label">GPT (ALT)</label><input type="number" step="0.1" class="form-control" name="gpt"></div>
-                        <div class="col-md-3"><label class="form-label">Fosfatasa Alcalina (FA)</label><input type="number" step="0.1" class="form-control" name="fa"></div>
-
-                        <div class="col-md-4"><label class="form-label">Bilirrubina Total</label><input type="number" step="0.1" class="form-control" name="bili_tot"></div>
-                        <div class="col-md-4"><label class="form-label">Bilirrubina Directa</label><input type="number" step="0.1" class="form-control" name="bili_dir"></div>
-                        <div class="col-md-4"><label class="form-label">Bilirrubina Indirecta</label><input type="number" step="0.1" class="form-control" name="bili_ind"></div>
-
+                        <div class="col-md-3"><label class="form-label">GOT</label><input type="number" step="0.1" class="form-control" name="got"></div>
+                        <div class="col-md-3"><label class="form-label">GPT</label><input type="number" step="0.1" class="form-control" name="gpt"></div>
+                        <div class="col-md-3"><label class="form-label">FA</label><input type="number" step="0.1" class="form-control" name="fa"></div>
+                        <div class="col-md-4"><label class="form-label">Bili Tot</label><input type="number" step="0.1" class="form-control" name="bili_tot"></div>
+                        <div class="col-md-4"><label class="form-label">Bili Dir</label><input type="number" step="0.1" class="form-control" name="bili_dir"></div>
+                        <div class="col-md-4"><label class="form-label">Bili Ind</label><input type="number" step="0.1" class="form-control" name="bili_ind"></div>
                         <div class="col-md-6"><label class="form-label">Urea</label><input type="number" step="0.1" class="form-control" name="urea"></div>
                         <div class="col-md-6"><label class="form-label">Creatinina</label><input type="number" step="0.01" class="form-control" name="creatinine"></div>
-
                         <div class="col-md-3"><label class="form-label">TSH</label><input type="number" step="0.01" class="form-control" name="tsh"></div>
                         <div class="col-md-3"><label class="form-label">T4</label><input type="number" step="0.01" class="form-control" name="t4"></div>
                         <div class="col-md-3"><label class="form-label">T3</label><input type="number" step="0.01" class="form-control" name="t3"></div>
                         <div class="col-md-3"><label class="form-label">Anti-TPO</label><input type="number" step="0.01" class="form-control" name="anti_tpo"></div>
-
-                        <div class="col-md-3"><label class="form-label">Vitamina D</label><input type="number" step="0.1" class="form-control" name="vit_d"></div>
-                        <div class="col-md-3"><label class="form-label">Vitamina B12</label><input type="number" step="0.1" class="form-control" name="vit_b12"></div>
-                        <div class="col-md-3"><label class="form-label">Calcio (Ca)</label><input type="number" step="0.1" class="form-control" name="calcium"></div>
-                        <div class="col-md-3"><label class="form-label">Magnesio (Mg)</label><input type="number" step="0.1" class="form-control" name="magnesium"></div>
-
-                        <div class="col-md-6"><label class="form-label">Fósforo (P)</label><input type="number" step="0.1" class="form-control" name="phosphorus"></div>
-                        <div class="col-md-6"><label class="form-label">Cloro (Cl)</label><input type="number" step="0.1" class="form-control" name="chlorine"></div>
+                        <div class="col-md-3"><label class="form-label">Vit D</label><input type="number" step="0.1" class="form-control" name="vit_d"></div>
+                        <div class="col-md-3"><label class="form-label">Vit B12</label><input type="number" step="0.1" class="form-control" name="vit_b12"></div>
+                        <div class="col-md-3"><label class="form-label">Calcio</label><input type="number" step="0.1" class="form-control" name="calcium"></div>
+                        <div class="col-md-3"><label class="form-label">Magnesio</label><input type="number" step="0.1" class="form-control" name="magnesium"></div>
+                        <div class="col-md-6"><label class="form-label">Fósforo</label><input type="number" step="0.1" class="form-control" name="phosphorus"></div>
+                        <div class="col-md-6"><label class="form-label">Cloro</label><input type="number" step="0.1" class="form-control" name="chlorine"></div>
                     </div>
                 </div>
 
@@ -140,25 +107,37 @@
                     </div>
                 </div>
 
-                <!-- Pestaña 4: Tratamiento / Indicaciones -->
+                <!-- Pestaña 4: Tratamiento / Indicaciones y Fotos -->
                 <div class="tab-pane fade" id="tratamiento" role="tabpanel">
-                    <h5 class="section-title">Indicaciones y Tratamiento (Receta)</h5>
-                    <div class="row g-3">
-                        <div class="col-md-12">
-                            <label class="form-label">Indicaciones / Tratamiento General</label>
-                            <textarea class="form-control" name="indicaciones_tratamiento" rows="3"></textarea>
-                        </div>
-                        <div class="col-md-12">
-                            <label class="form-label">Medicación (para la Receta Médica)</label>
-                            <textarea class="form-control" name="medications" rows="3" placeholder="1. Metformina 850mg...&#10;2. Enalapril 10mg..."></textarea>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Próximo Control</label>
-                            <input type="text" class="form-control" name="proximo_control" placeholder="Ej. En 4 semanas">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Conducta Médica / Notas</label>
-                            <textarea class="form-control" name="conducta_medica" rows="2"></textarea>
+                    <h5 class="section-title">Indicaciones y Tratamiento</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-12"><label class="form-label">Indicaciones Generales</label><textarea class="form-control" name="indicaciones_tratamiento" rows="2"></textarea></div>
+                        <div class="col-md-12"><label class="form-label">Medicación (Receta)</label><textarea class="form-control" name="medications" rows="2"></textarea></div>
+                        <div class="col-md-6"><label class="form-label">Próximo Control</label><input type="text" class="form-control" name="proximo_control"></div>
+                        <div class="col-md-6"><label class="form-label">Conducta Médica</label><textarea class="form-control" name="conducta_medica" rows="2"></textarea></div>
+                    </div>
+
+                    <!-- Sección de Adjuntar Foto en la Consulta -->
+                    <div class="card bg-black border-secondary p-3">
+                        <h6 class="text-danger mb-3">📸 Adjuntar Foto de Consulta (Evolución / Lesión en Piel)</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Categoría</label>
+                                <select class="form-select bg-dark text-white border-secondary" name="photo_category">
+                                    <option value="Antes">Foto Inicial (Antes)</option>
+                                    <option value="Evolución">Control / Evolución</option>
+                                    <option value="Lesión en Piel">Lesión en Piel</option>
+                                    <option value="Después">Resultado Final (Después)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">Seleccionar Imagen</label>
+                                <input type="file" class="form-control bg-dark text-white border-secondary" name="photo" accept="image/*">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Notas de la Foto</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" name="photo_notes" placeholder="Ej. Mejora en zona...">
+                            </div>
                         </div>
                     </div>
                 </div>
