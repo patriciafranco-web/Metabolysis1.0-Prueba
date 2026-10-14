@@ -26,6 +26,12 @@ if not os.path.exists(UPLOAD_FOLDER):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# Función para formatear texto (Primera letra en mayúscula, resto en minúscula)
+def format_text(text):
+    if not text:
+        return ""
+    return text.strip().title()
+
 db = SQLAlchemy(app)
 
 class User(db.Model):
@@ -226,16 +232,16 @@ def index():
 def new_patient():
     if request.method == 'POST':
         patient = Patient(
-            full_name=request.form['full_name'],
-            ci=request.form['ci'],
+            full_name=format_text(request.form['full_name']),
+            ci=request.form['ci'].strip(),
             birth_date=request.form.get('birth_date'),
             age=int(request.form['age'] or 0),
             gender=request.form['gender'],
             phone=request.form.get('phone'),
-            sanatorio=request.form['sanatorio'],
-            procedencia=request.form.get('procedencia'),
-            profession=request.form.get('profession'),
-            pathology_type=request.form.get('pathology_type'),
+            sanatorio=format_text(request.form['sanatorio']),
+            procedencia=format_text(request.form.get('procedencia')),
+            profession=format_text(request.form.get('profession')),
+            pathology_type=format_text(request.form.get('pathology_type')),
             evolution_years=int(request.form.get('evolution_years') or 0),
             antecedentes_familiares=request.form.get('antecedentes_familiares'),
             antecedentes_personales=request.form.get('antecedentes_personales'),
