@@ -1,9 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for, Response, send_file, session
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from functools import wraps
 import io
 import csv
+import os
 import openpyxl
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
@@ -12,6 +14,18 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///metabolisys_pro.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'metabolisys_secreto_seguro_2026'
+
+# Configuración de carpeta para almacenamiento de fotos clínicas
+UPLOAD_FOLDER = 'static/uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 db = SQLAlchemy(app)
 
 class User(db.Model):
@@ -37,7 +51,7 @@ class Patient(db.Model):
     comorbidities = db.Column(db.String(200))
     tratamiento_base = db.Column(db.Text)
     
-    # Nuevos campos de filiación, ginecología y estilo de vida
+    # Campos de filiación, ginecología y estilo de vida
     historial_cirugias = db.Column(db.Text)
     alergia_farmacos = db.Column(db.Text)
     cant_hijos = db.Column(db.String(50))
@@ -58,7 +72,7 @@ class MedicalRecord(db.Model):
     patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'), nullable=False)
     date = db.Column(db.String(20), nullable=False)
     
-    # Antropometría (Hoja Controles)
+    # Antropometría
     height = db.Column(db.Float)
     weight = db.Column(db.Float)
     body_fat_kg = db.Column(db.Float)
@@ -67,15 +81,15 @@ class MedicalRecord(db.Model):
     muscle_mass_kg = db.Column(db.Float)
     muscle_mass_pct = db.Column(db.Float)
     basal_metabolism = db.Column(db.Float)
-    waist = db.Column(db.Float) # Circunferencia de abdomen
+    waist = db.Column(db.Float)
     
-    # Cálculos automáticos de diferencias / pérdidas (Cuadro resumen Excel)
+    # Cálculos automáticos de diferencias / pérdidas
     weight_lost = db.Column(db.Float, default=0.0)
     fat_lost = db.Column(db.Float, default=0.0)
     muscle_delta = db.Column(db.Float, default=0.0)
     waist_lost = db.Column(db.Float, default=0.0)
     
-    # Laboratorios (Hoja Laboratorios)
+    # Laboratorios
     glucose = db.Column(db.Float)
     insulin = db.Column(db.Float)
     hba1c = db.Column(db.Float)
@@ -109,7 +123,7 @@ class MedicalRecord(db.Model):
     ecografia_tiroidea = db.Column(db.Text)
     otros_estudios = db.Column(db.Text)
     
-    # Indicaciones y Tratamiento (Hoja Indicaciones)
+    # Indicaciones y Tratamiento
     indicaciones_tratamiento = db.Column(db.Text)
     medications = db.Column(db.Text)
     proximo_control = db.Column(db.String(30))
@@ -135,6 +149,19 @@ class MedicalRecord(db.Model):
             h_cm = self.height if self.height > 3 else self.height * 100
             return round(self.waist / h_cm, 2)
         return None
+
+class PatientPhoto(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'), nullable=False)
+    record_id = db.Column(db.Integer, db.ForeignKey('medical_record.id'), nullable=True)
+    filename = db.Column(db.String(200), nullable=False)
+    category = db.Column(db.String(50), nullable=False) # 'Antes', 'Evolución', 'Lesión en Piel', 'Después'
+    date = db.Column(db.String(20), nullable=False)
+    notes = db.Column(db.Text)
+    
+    record = db.relationship('MedicalRecord', backref='photos', lazy=True)
+
+Patient.photos = db.relationship('PatientPhoto', backref='patient', lazy=True, cascade="all, delete-orphan")
 
 with app.app_context():
     db.create_all()
@@ -278,7 +305,6 @@ def new_record(patient_id):
             basal_metabolism=float(request.form.get('basal_metabolism') or 0),
             waist=wst_curr,
             
-            # Cálculos automáticos de pérdidas respecto al inicio
             weight_lost=round(w_init - w_curr, 2) if first_record else 0.0,
             fat_lost=round(f_init - f_curr, 2) if first_record else 0.0,
             muscle_delta=round(m_curr - m_init, 2) if first_record else 0.0,
@@ -324,6 +350,25 @@ def new_record(patient_id):
         )
         db.session.add(record)
         db.session.commit()
+
+        # Procesar foto adjunta en la consulta si existe
+        if 'photo' in request.files:
+            file = request.files['photo']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(f"p_{patient.id}_r_{record.id}_{file.filename}")
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                
+                photo = PatientPhoto(
+                    patient_id=patient.id,
+                    record_id=record.id,
+                    filename=filename,
+                    category=request.form.get('photo_category', 'Evolución'),
+                    date=request.form['date'],
+                    notes=request.form.get('photo_notes', '')
+                )
+                db.session.add(photo)
+                db.session.commit()
+
         return redirect(url_for('patient_detail', id=patient.id))
     return render_template('new_record.html', patient=patient)
 
