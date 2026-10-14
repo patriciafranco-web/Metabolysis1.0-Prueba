@@ -386,7 +386,7 @@ def new_record(patient_id):
         return redirect(url_for('patient_detail', id=patient.id))
     return render_template('new_record.html', patient=patient)
 
-# Nueva ruta independiente para modificar o crear el plan/tratamiento sin tocar pesos
+# Ruta independiente para editar el plan sin tocar la antropometría
 @app.route('/treatment/edit/<int:patient_id>', methods=['GET', 'POST'])
 @login_required
 def edit_treatment(patient_id):
