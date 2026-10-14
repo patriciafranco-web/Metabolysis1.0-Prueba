@@ -8,7 +8,9 @@ import csv
 import os
 import openpyxl
 from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///metabolisys_pro.db'
@@ -26,11 +28,13 @@ if not os.path.exists(UPLOAD_FOLDER):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# Función para formatear texto (Primera letra en mayúscula, resto en minúscula)
+# Función para formatear texto (Primera letra en mayúscula, respeta saltos de línea)
 def format_text(text):
     if not text:
         return ""
-    return text.strip().title()
+    lines = text.split('\n')
+    formatted_lines = [" ".join([w.capitalize() for w in line.split()]) for line in lines if line.strip()]
+    return "\n".join(formatted_lines)
 
 db = SQLAlchemy(app)
 
@@ -57,7 +61,6 @@ class Patient(db.Model):
     comorbidities = db.Column(db.String(200))
     tratamiento_base = db.Column(db.Text)
     
-    # Campos de filiación, ginecología y estilo de vida
     historial_cirugias = db.Column(db.Text)
     alergia_farmacos = db.Column(db.Text)
     cant_hijos = db.Column(db.String(50))
@@ -78,7 +81,6 @@ class MedicalRecord(db.Model):
     patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'), nullable=False)
     date = db.Column(db.String(20), nullable=False)
     
-    # Antropometría
     height = db.Column(db.Float)
     weight = db.Column(db.Float)
     body_fat_kg = db.Column(db.Float)
@@ -89,13 +91,11 @@ class MedicalRecord(db.Model):
     basal_metabolism = db.Column(db.Float)
     waist = db.Column(db.Float)
     
-    # Cálculos automáticos de diferencias / pérdidas
     weight_lost = db.Column(db.Float, default=0.0)
     fat_lost = db.Column(db.Float, default=0.0)
     muscle_delta = db.Column(db.Float, default=0.0)
     waist_lost = db.Column(db.Float, default=0.0)
     
-    # Laboratorios
     glucose = db.Column(db.Float)
     insulin = db.Column(db.Float)
     hba1c = db.Column(db.Float)
@@ -124,12 +124,10 @@ class MedicalRecord(db.Model):
     phosphorus = db.Column(db.Float)
     chlorine = db.Column(db.Float)
     
-    # Estudios
     ecografia_abdominal = db.Column(db.Text)
     ecografia_tiroidea = db.Column(db.Text)
     otros_estudios = db.Column(db.Text)
     
-    # Indicaciones y Tratamiento
     indicaciones_tratamiento = db.Column(db.Text)
     medications = db.Column(db.Text)
     proximo_control = db.Column(db.String(30))
@@ -243,12 +241,12 @@ def new_patient():
             profession=format_text(request.form.get('profession')),
             pathology_type=format_text(request.form.get('pathology_type')),
             evolution_years=int(request.form.get('evolution_years') or 0),
-            antecedentes_familiares=request.form.get('antecedentes_familiares'),
-            antecedentes_personales=request.form.get('antecedentes_personales'),
+            antecedentes_familiares=format_text(request.form.get('antecedentes_familiares')),
+            antecedentes_personales=format_text(request.form.get('antecedentes_personales')),
             comorbidities=request.form.get('comorbidities'),
             tratamiento_base=request.form.get('tratamiento_base'),
-            historial_cirugias=request.form.get('historial_cirugias'),
-            alergia_farmacos=request.form.get('alergia_farmacos'),
+            historial_cirugias=format_text(request.form.get('historial_cirugias')),
+            alergia_farmacos=format_text(request.form.get('alergia_farmacos')),
             cant_hijos=request.form.get('cant_hijos'),
             menarca=request.form.get('menarca'),
             menstruacion_regular=request.form.get('menstruacion_regular'),
@@ -348,11 +346,11 @@ def new_record(patient_id):
             ecografia_tiroidea=request.form.get('ecografia_tiroidea'),
             otros_estudios=request.form.get('otros_estudios'),
             
-            indicaciones_tratamiento=request.form.get('indicaciones_tratamiento'),
-            medications=request.form.get('medications'),
+            indicaciones_tratamiento=format_text(request.form.get('indicaciones_tratamiento')),
+            medications=format_text(request.form.get('medications')),
             proximo_control=request.form.get('proximo_control'),
             notes=request.form.get('notes'),
-            conducta_medica=request.form.get('conducta_medica')
+            conducta_medica=format_text(request.form.get('conducta_medica'))
         )
         db.session.add(record)
         db.session.commit()
@@ -420,25 +418,79 @@ def export_excel():
 def generate_pdf(patient_id):
     patient = Patient.query.get_or_404(patient_id)
     buffer = io.BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+    story = []
     
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(50, 750, "DRA. SOFIA FERNANDEZ - DIABETES Y OBESIDAD")
-    p.setFont("Helvetica", 9)
-    p.drawString(50, 735, f"Sanatorio: {patient.sanatorio} | Tel: {patient.phone or 'N/D'}")
-    p.line(50, 725, 560, 725)
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'DocTitle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=14,
+        alignment=1,
+        spaceAfter=15
+    )
+    section_style = ParagraphStyle(
+        'SectionHeading',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=10,
+        alignment=1,
+        spaceAfter=8,
+        spaceBefore=10
+    )
+    body_style = ParagraphStyle(
+        'DocBody',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9,
+        leading=13
+    )
     
-    p.setFont("Helvetica-Bold", 11)
-    p.drawString(50, 705, f"INFORME CLÍNICO DE PACIENTE: {patient.full_name}")
-    p.setFont("Helvetica", 10)
-    p.drawString(50, 690, f"CI: {patient.ci} | Edad: {patient.age} años | Género: {patient.gender} | Procedencia: {patient.procedencia or 'N/D'}")
+    last_r = patient.records[-1] if patient.records else None
+    report_date = last_r.date if last_r else "N/D"
     
-    y = 665
+    # Encabezado con Nombre y Fecha del último control
+    story.append(Paragraph(f"{patient.full_name.upper()} &nbsp;&nbsp;&nbsp;&nbsp; {report_date}", title_style))
+    story.append(Spacer(1, 5))
     
     if patient.records:
-        first_r = patient.records[0]
-        last_r = patient.records[-1]
+        # Tabla de evolución antropométrica
+        table_data = [[
+            'FECHA', 'ALTURA\n(cm)', 'PESO\n(kg)', 'GRASA CORP.\n(kg)', 'GRASA CORP.\n(%)', 'GRASA\nVISCERAL', 'MÚSCULO\n(kg)', 'MÚSCULO\n(%)', 'METABOLISMO\nEN REPOSO (kcal)', 'IMC\n(kg/m²)', 'CA\n(cm)'
+        ]]
+        for r in patient.records:
+            table_data.append([
+                str(r.date),
+                str(r.height or '-'),
+                str(r.weight or '-'),
+                str(r.body_fat_kg or '-'),
+                str(r.body_fat_pct or '-'),
+                str(r.visceral_fat or '-'),
+                str(r.muscle_mass_kg or '-'),
+                str(r.muscle_mass_pct or '-'),
+                str(r.basal_metabolism or '-'),
+                str(r.bmi or '-'),
+                str(r.waist or '-')
+            ])
         
+        t = Table(table_data, colWidths=[55, 42, 42, 50, 45, 45, 45, 40, 75, 40, 40])
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e8f4f4')),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,0), 7),
+            ('FONTSIZE', (0,1), (-1,-1), 7),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cccccc')),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+        ]))
+        story.append(t)
+        story.append(Spacer(1, 10))
+        
+        # Cuadro de Resumen Desde Inicio al Último Control
+        first_r = patient.records[0]
         w_init = first_r.weight or 0
         w_last = last_r.weight or 0
         w_diff = round(w_init - w_last, 2)
@@ -455,76 +507,65 @@ def generate_pdf(patient_id):
         c_last = last_r.waist or 0
         c_diff = round(c_init - c_last, 2)
         
-        p.setFont("Helvetica-Bold", 10)
-        p.drawString(50, y, "RESUMEN DESDE INICIO AL ÚLTIMO CONTROL")
-        y -= 15
-        p.setFont("Helvetica", 9)
-        p.drawString(50, y, f"• Peso Inicial: {w_init} kg  |  Peso Último: {w_last} kg  |  Peso Total Perdido: {w_diff} kg")
-        y -= 14
-        p.drawString(50, y, f"• Grasa Inicial: {f_init} kg  |  Grasa Última: {f_last} kg  |  Grasa Total Perdida: {f_diff} kg")
-        y -= 14
-        p.drawString(50, y, f"• Músculo Inicial: {m_init} kg  |  Músculo Último: {m_last} kg  |  Variación Músculo: {m_diff} kg")
-        y -= 14
-        p.drawString(50, y, f"• Cintura Inicial: {c_init} cm  |  Cintura Última: {c_last} cm  |  Cintura Perdida: {c_diff} cm")
-        y -= 25
+        story.append(Paragraph("RESUMEN DESDE INICIO AL ÚLTIMO CONTROL", section_style))
         
-        p.setFont("Helvetica-Bold", 10)
-        p.drawString(50, y, "EVOLUCIÓN POR FECHAS (CONTROLES ANTROPOMÉTRICOS Y PÉRDIDAS)")
-        y -= 15
+        sum_data = [
+            ['Peso inicial (kg)', 'Peso último (kg)', 'Peso total perdido (kg)'],
+            [str(w_init), str(w_last), str(w_diff)],
+            ['Grasa inicial (kg)', 'Grasa última (kg)', 'Grasa total perdida (kg)'],
+            [str(f_init), str(f_last), str(f_diff)],
+            ['Músculo inicial (kg)', 'Músculo último (kg)', 'Músculo total (kg)'],
+            [str(m_init), str(m_last), str(m_diff)],
+            ['Cintura inicial (cm)', 'Cintura última (cm)', 'Cintura total perdida (cm)'],
+            [str(c_init), str(c_last), str(c_diff)]
+        ]
+        sum_table = Table(sum_data, colWidths=[180, 180, 180])
+        sum_table.setStyle(TableStyle([
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTNAME', (0,2), (-1,2), 'Helvetica-Bold'),
+            ('FONTNAME', (0,4), (-1,4), 'Helvetica-Bold'),
+            ('FONTNAME', (0,6), (-1,6), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,-1), 8),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor('#006666')),
+            ('TEXTCOLOR', (0,2), (-1,2), colors.HexColor('#006666')),
+            ('TEXTCOLOR', (0,4), (-1,4), colors.HexColor('#006666')),
+            ('TEXTCOLOR', (0,6), (-1,6), colors.HexColor('#006666')),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+            ('TOPPADDING', (0,0), (-1,-1), 3),
+        ]))
+        story.append(sum_table)
+        story.append(Spacer(1, 15))
         
-        p.setFont("Helvetica-Bold", 8)
-        p.drawString(50, y, "FECHA")
-        p.drawString(110, y, "PESO")
-        p.drawString(170, y, "P. PERDIDO")
-        p.drawString(230, y, "GRASA")
-        p.drawString(290, y, "MÚSCULO")
-        p.drawString(350, y, "M. DELTA")
-        p.drawString(410, y, "IMC")
-        p.drawString(470, y, "CINTURA")
-        y -= 12
-        p.line(50, y+3, 540, y+3)
-        y -= 12
+        # Plan e Indicaciones Juntos
+        story.append(Paragraph("<b>INDICACIONES Y PLAN TERAPÉUTICO</b>", section_style))
+        story.append(Spacer(1, 5))
         
-        p.setFont("Helvetica", 8)
-        for r in patient.records:
-            if y < 150:
-                p.showPage()
-                y = 750
-            p.drawString(50, y, str(r.date))
-            p.drawString(110, y, f"{r.weight or '-'} kg")
-            p.drawString(170, y, f"-{r.weight_lost or 0} kg")
-            p.drawString(230, y, f"{r.body_fat_kg or '-'} kg")
-            p.drawString(290, y, f"{r.muscle_mass_kg or '-'} kg")
-            p.drawString(350, y, f"{r.muscle_delta or 0} kg")
-            p.drawString(410, y, str(r.bmi))
-            p.drawString(470, y, f"{r.waist or '-'} cm")
-            y -= 16
+        meds = last_r.medications or ""
+        inds = last_r.indicaciones_tratamiento or ""
         
-        y -= 15
-        if y < 180:
-            p.showPage()
-            y = 750
+        plan_text = ""
+        if meds:
+            for line in meds.split('\n'):
+                if line.strip():
+                    plan_text += f"• &nbsp; <b>{line.upper()}</b><br/>"
+        if inds:
+            for line in inds.split('\n'):
+                if line.strip():
+                    plan_text += f"• &nbsp; {line.upper()}<br/>"
+        if last_r.proximo_control:
+            plan_text += f"<br/>• &nbsp; <b>CONTROL EN {last_r.proximo_control.upper()}.</b>"
             
-        p.setFont("Helvetica-Bold", 10)
-        p.drawString(50, y, "INDICACIONES Y TRATAMIENTO ACTUAL:")
-        y -= 16
-        p.setFont("Helvetica", 9)
-        
-        meds = last_r.medications or "Sin medicación registrada"
-        for line in meds.split('\n'):
-            p.drawString(60, y, f"• {line}")
-            y -= 14
+        if not plan_text:
+            plan_text = "Sin indicaciones registradas para este control."
             
-        inds = last_r.indicaciones_tratamiento or "Sin indicaciones adicionales"
-        for line in inds.split('\n'):
-            p.drawString(60, y, f"• {line}")
-            y -= 14
+        story.append(Paragraph(plan_text, body_style))
+        
     else:
-        p.setFont("Helvetica", 10)
-        p.drawString(50, y, "No hay controles registrados todavía para este paciente.")
-
-    p.showPage()
-    p.save()
+        story.append(Paragraph("No hay controles registrados todavía para este paciente.", body_style))
+        
+    doc.build(story)
     buffer.seek(0)
     return send_file(buffer, as_attachment=True, download_name=f"Informe_{patient.full_name}.pdf", mimetype='application/pdf')
 
