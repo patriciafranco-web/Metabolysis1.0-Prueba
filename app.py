@@ -155,7 +155,7 @@ class PatientPhoto(db.Model):
     patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'), nullable=False)
     record_id = db.Column(db.Integer, db.ForeignKey('medical_record.id'), nullable=True)
     filename = db.Column(db.String(200), nullable=False)
-    category = db.Column(db.String(50), nullable=False) # 'Antes', 'Evolución', 'Lesión en Piel', 'Después'
+    category = db.Column(db.String(50), nullable=False)
     date = db.Column(db.String(20), nullable=False)
     notes = db.Column(db.Text)
     
@@ -351,7 +351,6 @@ def new_record(patient_id):
         db.session.add(record)
         db.session.commit()
 
-        # Procesar foto adjunta en la consulta si existe
         if 'photo' in request.files:
             file = request.files['photo']
             if file and allowed_file(file.filename):
@@ -417,14 +416,12 @@ def generate_pdf(patient_id):
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     
-    # Encabezado
     p.setFont("Helvetica-Bold", 14)
     p.drawString(50, 750, "DRA. SOFIA FERNANDEZ - DIABETES Y OBESIDAD")
     p.setFont("Helvetica", 9)
     p.drawString(50, 735, f"Sanatorio: {patient.sanatorio} | Tel: {patient.phone or 'N/D'}")
     p.line(50, 725, 560, 725)
     
-    # Datos del Paciente
     p.setFont("Helvetica-Bold", 11)
     p.drawString(50, 705, f"INFORME CLÍNICO DE PACIENTE: {patient.full_name}")
     p.setFont("Helvetica", 10)
@@ -452,7 +449,6 @@ def generate_pdf(patient_id):
         c_last = last_r.waist or 0
         c_diff = round(c_init - c_last, 2)
         
-        # Cuadro de Resumen Desde Inicio al Último Control
         p.setFont("Helvetica-Bold", 10)
         p.drawString(50, y, "RESUMEN DESDE INICIO AL ÚLTIMO CONTROL")
         y -= 15
@@ -466,7 +462,6 @@ def generate_pdf(patient_id):
         p.drawString(50, y, f"• Cintura Inicial: {c_init} cm  |  Cintura Última: {c_last} cm  |  Cintura Perdida: {c_diff} cm")
         y -= 25
         
-        # Historial de Controles
         p.setFont("Helvetica-Bold", 10)
         p.drawString(50, y, "EVOLUCIÓN POR FECHAS (CONTROLES ANTROPOMÉTRICOS Y PÉRDIDAS)")
         y -= 15
