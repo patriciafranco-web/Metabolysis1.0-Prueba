@@ -32,19 +32,22 @@
         </div>
     </div>
 
-    <!-- Pestañas de Navegación (Tipo Excel) -->
+    <!-- Pestañas de Navegación -->
     <ul class="nav nav-pills mb-3" id="patientTab" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="filiacion-tab" data-bs-toggle="pill" data-bs-target="#filiacion" type="button" role="tab">📑 Filiación</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="controles-tab" data-bs-toggle="pill" data-bs-target="#controles" type="button" role="tab">⚖️ Controles y Gráficos</button>
+            <button class="nav-link" id="controles-tab" data-bs-toggle="pill" data-bs-target="#controles" type="button" role="tab">⚖️ Controles</button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="laboratorios-tab" data-bs-toggle="pill" data-bs-target="#laboratorios" type="button" role="tab">🧪 Laboratorios</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="indicaciones-tab" data-bs-toggle="pill" data-bs-target="#indicaciones" type="button" role="tab">📋 Indicaciones / Tratamiento</button>
+            <button class="nav-link" id="indicaciones-tab" data-bs-toggle="pill" data-bs-target="#indicaciones" type="button" role="tab">📋 Tratamiento</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="comparativa-tab" data-bs-toggle="pill" data-bs-target="#comparativa" type="button" role="tab">⚖️ Comparativa Visual</button>
         </li>
     </ul>
 
@@ -101,7 +104,7 @@
             </div>
         </div>
 
-        <!-- Pestaña 2: Controles y Gráficos -->
+        <!-- Pestaña 2: Controles -->
         <div class="tab-pane fade" id="controles" role="tabpanel">
             {% if patient.records %}
             <div class="row mb-4">
@@ -121,7 +124,7 @@
             {% endif %}
 
             <div class="card p-3 shadow-sm">
-                <h5 class="text-danger mb-3">📊 Historial de Controles Antropométricos (Matriz Completa)</h5>
+                <h5 class="text-danger mb-3">📊 Historial de Controles Antropométricos</h5>
                 {% if patient.records %}
                 <div class="table-responsive">
                     <table class="table table-dark table-striped table-hover align-middle">
@@ -131,12 +134,11 @@
                                 <th>Altura</th>
                                 <th>Peso</th>
                                 <th>Peso Perdido</th>
-                                <th>Grasa (kg / %)</th>
+                                <th>Grasa</th>
                                 <th>Grasa Perdida</th>
                                 <th>Visceral</th>
-                                <th>Músculo (kg)</th>
+                                <th>Músculo</th>
                                 <th>Músculo Δ</th>
-                                <th>Metabolismo</th>
                                 <th>IMC</th>
                                 <th>Cintura</th>
                                 <th>Cintura Perdida</th>
@@ -154,7 +156,6 @@
                                 <td>{{ r.visceral_fat }}</td>
                                 <td>{{ r.muscle_mass_kg }} kg</td>
                                 <td class="text-warning">{{ r.muscle_delta or 0 }} kg</td>
-                                <td>{{ r.basal_metabolism or '-' }} kcal</td>
                                 <td>{{ r.bmi }}</td>
                                 <td>{{ r.waist }} cm</td>
                                 <td class="text-success">-{{ r.waist_lost or 0 }} cm</td>
@@ -172,7 +173,7 @@
         <!-- Pestaña 3: Laboratorios -->
         <div class="tab-pane fade" id="laboratorios" role="tabpanel">
             <div class="card p-3 shadow-sm">
-                <h5 class="text-danger mb-3">🧪 Historial de Laboratorios y Bioquímica</h5>
+                <h5 class="text-danger mb-3">🧪 Historial de Laboratorios</h5>
                 {% if patient.records %}
                 <div class="table-responsive">
                     <table class="table table-dark table-striped table-hover align-middle">
@@ -210,7 +211,7 @@
             </div>
         </div>
 
-        <!-- Pestaña 4: Indicaciones / Tratamiento -->
+        <!-- Pestaña 4: Tratamiento -->
         <div class="tab-pane fade" id="indicaciones" role="tabpanel">
             <div class="card p-3 shadow-sm">
                 <h5 class="text-danger mb-3">📋 Indicaciones y Pautas por Fecha</h5>
@@ -227,6 +228,37 @@
                     {% endfor %}
                 {% else %}
                 <p class="text-muted text-center py-4">Aún no hay indicaciones registradas.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Pestaña 5: Comparativa Visual -->
+        <div class="tab-pane fade" id="comparativa" role="tabpanel">
+            <div class="card p-4 shadow-sm">
+                <h5 class="text-danger mb-4">🔍 Comparativa de Evolución (Antes vs. Actual)</h5>
+                
+                {% if patient.photos | length >= 2 %}
+                <div class="row text-center">
+                    <div class="col-md-6 border-end border-secondary">
+                        <h6 class="text-warning">Foto Inicial (Baseline)</h6>
+                        <img src="{{ url_for('static', filename='uploads/' + patient.photos[0].filename) }}" class="img-fluid rounded mb-2 shadow" style="max-height: 350px; object-fit: cover;">
+                        <p class="small text-muted">Fecha: {{ patient.photos[0].date }} | {{ patient.photos[0].category }}</p>
+                        <p class="small text-white">{{ patient.photos[0].notes or '' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-success">Foto Más Reciente (Actual)</h6>
+                        <img src="{{ url_for('static', filename='uploads/' + patient.photos[-1].filename) }}" class="img-fluid rounded mb-2 shadow" style="max-height: 350px; object-fit: cover;">
+                        <p class="small text-muted">Fecha: {{ patient.photos[-1].date }} | {{ patient.photos[-1].category }}</p>
+                        <p class="small text-white">{{ patient.photos[-1].notes or '' }}</p>
+                    </div>
+                </div>
+                {% elif patient.photos | length == 1 %}
+                <div class="text-center py-4">
+                    <p class="text-muted">Solo hay 1 foto registrada. Sube una segunda foto en un control posterior para ver la comparativa lado a lado.</p>
+                    <img src="{{ url_for('static', filename='uploads/' + patient.photos[0].filename) }}" class="img-fluid rounded shadow" style="max-height: 300px;">
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-4">Aún no hay fotos cargadas en los controles de este paciente.</p>
                 {% endif %}
             </div>
         </div>
