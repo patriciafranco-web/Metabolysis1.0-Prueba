@@ -242,7 +242,7 @@ def new_patient():
             evolution_years=int(request.form.get('evolution_years') or 0),
             antecedentes_familiares=format_text(request.form.get('antecedentes_familiares')),
             antecedentes_personales=format_text(request.form.get('antecedentes_personales')),
-            comorbidities=format_text(request.form.get('comorbidities')),
+            comorbidities=request.form.get('comorbidities'),
             tratamiento_base=format_text(request.form.get('tratamiento_base')),
             historial_cirugias=format_text(request.form.get('historial_cirugias')),
             alergia_farmacos=format_text(request.form.get('alergia_farmacos')),
@@ -278,13 +278,17 @@ def new_patient():
 @login_required
 def patient_detail(id):
     patient = Patient.query.get_or_404(id)
-    dates = [r.date for r in patient.records]
-    hba1c_data = [r.hba1c for r in patient.records if r.hba1c]
-    weight_data = [r.weight for r in patient.records if r.weight]
+    # Filtrar solo registros con peso y altura válidos para antropometría y gráficos
+    valid_records = [r for r in patient.records if r.weight is not None and r.weight > 0]
+    
+    dates = [r.date for r in valid_records]
+    hba1c_data = [r.hba1c for r in valid_records if r.hba1c]
+    weight_data = [r.weight for r in valid_records if r.weight]
 
     return render_template(
         'patient_detail.html', 
         patient=patient, 
+        valid_records=valid_records,
         dates=dates, 
         hba1c_data=hba1c_data, 
         weight_data=weight_data
@@ -295,7 +299,8 @@ def patient_detail(id):
 def new_record(patient_id):
     patient = Patient.query.get_or_404(patient_id)
     if request.method == 'POST':
-        first_record = patient.records[0] if patient.records else None
+        valid_records = [r for r in patient.records if r.weight is not None and r.weight > 0]
+        first_record = valid_records[0] if valid_records else None
         
         w_curr = float(request.form.get('weight') or 0)
         f_curr = float(request.form.get('body_fat_kg') or 0)
@@ -386,7 +391,6 @@ def new_record(patient_id):
         return redirect(url_for('patient_detail', id=patient.id))
     return render_template('new_record.html', patient=patient)
 
-# Ruta independiente para editar el plan sin tocar la antropometría
 @app.route('/treatment/edit/<int:patient_id>', methods=['GET', 'POST'])
 @login_required
 def edit_treatment(patient_id):
@@ -396,7 +400,7 @@ def edit_treatment(patient_id):
     if request.method == 'POST':
         today_str = date.today().strftime('%Y-%m-%d')
         if not last_record:
-            last_record = MedicalRecord(patient_id=patient.id, date=today_str)
+            last_record = MedicalRecord(patient_id=patient.id, date=today_str, weight=None, height=None)
             db.session.add(last_record)
             
         last_record.indicaciones_tratamiento = format_text(request.form.get('indicaciones_tratamiento'))
@@ -425,8 +429,9 @@ def export_excel():
     ])
     patients = Patient.query.all()
     for p in patients:
-        if p.records:
-            for r in p.records:
+        valid_recs = [r for r in p.records if r.weight is not None and r.weight > 0]
+        if valid_recs:
+            for r in valid_recs:
                 writer.writerow([
                     p.id, p.full_name, p.ci, p.age, p.gender, p.phone, p.sanatorio, p.procedencia, p.profession, p.pathology_type,
                     p.evolution_years, p.antecedentes_familiares, p.antecedentes_personales, p.comorbidities, p.tratamiento_base,
@@ -465,17 +470,18 @@ def generate_pdf(patient_id):
         'DocBody', parent=styles['Normal'], fontName='Helvetica', fontSize=9, leading=13
     )
     
-    last_r = patient.records[-1] if patient.records else None
+    valid_records = [r for r in patient.records if r.weight is not None and r.weight > 0]
+    last_r = valid_records[-1] if valid_records else (patient.records[-1] if patient.records else None)
     report_date = last_r.date if last_r else "N/D"
     
     story.append(Paragraph(f"{patient.full_name.upper()} &nbsp;&nbsp;&nbsp;&nbsp; {report_date}", title_style))
     story.append(Spacer(1, 5))
     
-    if patient.records:
+    if valid_records:
         table_data = [[
             'FECHA', 'ALTURA\n(cm)', 'PESO\n(kg)', 'GRASA CORP.\n(kg)', 'GRASA CORP.\n(%)', 'GRASA\nVISCERAL', 'MÚSCULO\n(kg)', 'MÚSCULO\n(%)', 'METABOLISMO\nEN REPOSO (kcal)', 'IMC\n(kg/m²)', 'CA\n(cm)'
         ]]
-        for r in patient.records:
+        for r in valid_records:
             table_data.append([
                 str(r.date), str(r.height or '-'), str(r.weight or '-'), str(r.body_fat_kg or '-'),
                 str(r.body_fat_pct or '-'), str(r.visceral_fat or '-'), str(r.muscle_mass_kg or '-'),
@@ -497,7 +503,7 @@ def generate_pdf(patient_id):
         story.append(t)
         story.append(Spacer(1, 10))
         
-        first_r = patient.records[0]
+        first_r = valid_records[0]
         w_init = first_r.weight or 0
         w_last = last_r.weight or 0
         w_diff = round(w_init - w_last, 2)
@@ -574,7 +580,7 @@ def generate_pdf(patient_id):
         story.append(Paragraph(plan_text, body_style))
         
     else:
-        story.append(Paragraph("No hay controles registrados todavía para este paciente.", body_style))
+        story.append(Paragraph("No hay controles antropométricos registrados todavía para este paciente.", body_style))
         
     doc.build(story)
     buffer.seek(0)
