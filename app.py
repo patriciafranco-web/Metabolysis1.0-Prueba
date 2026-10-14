@@ -17,7 +17,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///metabolisys_pro.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'metabolisys_secreto_seguro_2026'
 
-# Configuración de carpeta para almacenamiento de fotos clínicas
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -28,7 +27,6 @@ if not os.path.exists(UPLOAD_FOLDER):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# Función para formatear texto (Primera letra en mayúscula, respeta saltos de línea)
 def format_text(text):
     if not text:
         return ""
@@ -248,7 +246,7 @@ def new_patient():
             historial_cirugias=format_text(request.form.get('historial_cirugias')),
             alergia_farmacos=format_text(request.form.get('alergia_farmacos')),
             cant_hijos=request.form.get('cant_hijos'),
-            menarca=request.form.get('menarca'),
+            menarca=format_text(request.form.get('menarca')),
             menstruacion_regular=request.form.get('menstruacion_regular'),
             anticonceptivos=request.form.get('anticonceptivos'),
             checklist_glp1_notas=request.form.get('checklist_glp1_notas'),
@@ -258,6 +256,18 @@ def new_patient():
             veces_come=request.form.get('veces_come'),
             consume_gaseosa_jugo=request.form.get('consume_gaseosa_jugo')
         )
+        patient.antecedentes_familiares = format_text(request.form.get('antecedentes_familiares'))
+        patient.antecedentes_personales = format_text(request.form.get('antecedentes_personales'))
+        patient.comorbidities = format_text(request.form.get('comorbidities'))
+        patient.tratamiento_base = format_text(request.form.get('tratamiento_base'))
+        patient.historial_cirugias = format_text(request.form.get('historial_cirugias'))
+        patient.alergia_farmacos = format_text(request.form.get('alergia_farmacos'))
+        patient.calidad_sueno = format_text(request.form.get('calidad_sueno'))
+        patient.actividad_fisica = format_text(request.form.get('actividad_fisica'))
+        patient.fuma_alcohol = format_text(request.form.get('fuma_alcohol'))
+        patient.veces_come = format_text(request.form.get('veces_come'))
+        patient.consume_gaseosa_jugo = format_text(request.form.get('consume_gaseosa_jugo'))
+
         db.session.add(patient)
         db.session.commit()
         return redirect(url_for('index'))
@@ -423,55 +433,30 @@ def generate_pdf(patient_id):
     
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
-        'DocTitle',
-        parent=styles['Normal'],
-        fontName='Helvetica-Bold',
-        fontSize=14,
-        alignment=1,
-        spaceAfter=15
+        'DocTitle', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=14, alignment=1, spaceAfter=15
     )
     section_style = ParagraphStyle(
-        'SectionHeading',
-        parent=styles['Normal'],
-        fontName='Helvetica-Bold',
-        fontSize=10,
-        alignment=1,
-        spaceAfter=8,
-        spaceBefore=10
+        'SectionHeading', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10, alignment=1, spaceAfter=8, spaceBefore=10
     )
     body_style = ParagraphStyle(
-        'DocBody',
-        parent=styles['Normal'],
-        fontName='Helvetica',
-        fontSize=9,
-        leading=13
+        'DocBody', parent=styles['Normal'], fontName='Helvetica', fontSize=9, leading=13
     )
     
     last_r = patient.records[-1] if patient.records else None
     report_date = last_r.date if last_r else "N/D"
     
-    # Encabezado con Nombre y Fecha del último control
     story.append(Paragraph(f"{patient.full_name.upper()} &nbsp;&nbsp;&nbsp;&nbsp; {report_date}", title_style))
     story.append(Spacer(1, 5))
     
     if patient.records:
-        # Tabla de evolución antropométrica
         table_data = [[
             'FECHA', 'ALTURA\n(cm)', 'PESO\n(kg)', 'GRASA CORP.\n(kg)', 'GRASA CORP.\n(%)', 'GRASA\nVISCERAL', 'MÚSCULO\n(kg)', 'MÚSCULO\n(%)', 'METABOLISMO\nEN REPOSO (kcal)', 'IMC\n(kg/m²)', 'CA\n(cm)'
         ]]
         for r in patient.records:
             table_data.append([
-                str(r.date),
-                str(r.height or '-'),
-                str(r.weight or '-'),
-                str(r.body_fat_kg or '-'),
-                str(r.body_fat_pct or '-'),
-                str(r.visceral_fat or '-'),
-                str(r.muscle_mass_kg or '-'),
-                str(r.muscle_mass_pct or '-'),
-                str(r.basal_metabolism or '-'),
-                str(r.bmi or '-'),
-                str(r.waist or '-')
+                str(r.date), str(r.height or '-'), str(r.weight or '-'), str(r.body_fat_kg or '-'),
+                str(r.body_fat_pct or '-'), str(r.visceral_fat or '-'), str(r.muscle_mass_kg or '-'),
+                str(r.muscle_mass_pct or '-'), str(r.basal_metabolism or '-'), str(r.bmi or '-'), str(r.waist or '-')
             ])
         
         t = Table(table_data, colWidths=[55, 42, 42, 50, 45, 45, 45, 40, 75, 40, 40])
@@ -489,7 +474,6 @@ def generate_pdf(patient_id):
         story.append(t)
         story.append(Spacer(1, 10))
         
-        # Cuadro de Resumen Desde Inicio al Último Control
         first_r = patient.records[0]
         w_init = first_r.weight or 0
         w_last = last_r.weight or 0
@@ -520,6 +504,8 @@ def generate_pdf(patient_id):
             [str(c_init), str(c_last), str(c_diff)]
         ]
         sum_table = Table(sum_data, colWidths=[180, 180, 180])
+        
+        # AQUÍ SE AGREGAN LOS RECUADROS Y BORDES (GRID) A LA TABLA DE RESUMEN
         sum_table.setStyle(TableStyle([
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
@@ -532,13 +518,17 @@ def generate_pdf(patient_id):
             ('TEXTCOLOR', (0,2), (-1,2), colors.HexColor('#006666')),
             ('TEXTCOLOR', (0,4), (-1,4), colors.HexColor('#006666')),
             ('TEXTCOLOR', (0,6), (-1,6), colors.HexColor('#006666')),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 3),
-            ('TOPPADDING', (0,0), (-1,-1), 3),
+            ('GRID', (0,0), (-1,-1), 0.75, colors.HexColor('#006666')), # Añade recuadros a todas las celdas
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f0f8f8')), # Fondo sutil para las etiquetas
+            ('BACKGROUND', (0,2), (-1,2), colors.HexColor('#f0f8f8')),
+            ('BACKGROUND', (0,4), (-1,4), colors.HexColor('#f0f8f8')),
+            ('BACKGROUND', (0,6), (-1,6), colors.HexColor('#f0f8f8')),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
         ]))
         story.append(sum_table)
         story.append(Spacer(1, 15))
         
-        # Plan e Indicaciones Juntos
         story.append(Paragraph("<b>INDICACIONES Y PLAN TERAPÉUTICO</b>", section_style))
         story.append(Spacer(1, 5))
         
