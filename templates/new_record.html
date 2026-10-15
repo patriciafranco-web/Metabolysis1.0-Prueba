@@ -32,6 +32,33 @@
                 <input type="date" class="form-control" name="date" required style="max-width: 300px;">
             </div>
 
+            <!-- NUEVA SECCIÓN DE SIGNOS VITALES Y BALANZA -->
+            <div class="card bg-black border-secondary p-3 mb-4">
+                <h6 class="text-warning mb-3">🩺 Datos de la Consulta del Día</h6>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Marca de Balanza</label>
+                        <select class="form-select bg-dark text-white border-secondary" name="marca_balanza">
+                            <option value="InBody">InBody</option>
+                            <option value="Tanita">Tanita</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Presión Arterial (PA)</label>
+                        <input type="text" class="form-control" name="pa" placeholder="Ej. 120/80">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Frecuencia Cardíaca (FC)</label>
+                        <input type="number" class="form-control" name="fc" placeholder="Ej. 72">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Glicemia (mg/dL)</label>
+                        <input type="number" step="0.1" class="form-control" name="glucose" placeholder="Ej. 95">
+                    </div>
+                </div>
+            </div>
+            <!-- FIN DE NUEVA SECCIÓN -->
+
             <ul class="nav nav-pills mb-4" id="recordTab" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="antropometria-tab" data-bs-toggle="pill" data-bs-target="#antropometria" type="button" role="tab">⚖️ Antropometría</button>
@@ -66,7 +93,7 @@
                 <div class="tab-pane fade" id="laboratorios" role="tabpanel">
                     <h5 class="section-title">Laboratorios y Bioquímica</h5>
                     <div class="row g-3">
-                        <div class="col-md-3"><label class="form-label">Glicemia</label><input type="number" step="0.1" class="form-control" name="glucose"></div>
+                        <!-- Nota: Glicemia ya se incluye arriba en signos vitales, pero se mantiene aquí también por compatibilidad si lo cargan por laboratorio -->
                         <div class="col-md-3"><label class="form-label">Insulina</label><input type="number" step="0.1" class="form-control" name="insulin"></div>
                         <div class="col-md-3"><label class="form-label">HbA1c (%)</label><input type="number" step="0.01" class="form-control" name="hba1c"></div>
                         <div class="col-md-3"><label class="form-label">Triglicéridos</label><input type="number" step="0.1" class="form-control" name="triglycerides"></div>
