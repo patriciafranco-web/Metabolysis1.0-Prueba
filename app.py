@@ -551,14 +551,24 @@ def generate_pdf(patient_id):
     body_style = ParagraphStyle(
         'DocBody', parent=styles['Normal'], fontName='Helvetica', fontSize=9, leading=13
     )
-    footer_style = ParagraphStyle(
-        'DocFooter', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=9, alignment=1, textColor=colors.HexColor('#006666')
+    # Estilo para la info de contacto debajo del logo
+    contact_style = ParagraphStyle(
+        'ContactInfo', parent=styles['Normal'], fontName='Helvetica', fontSize=8, alignment=1, textColor=colors.HexColor('#555555'), spaceAfter=15
     )
     
+    # 1. Logo más grande
     logo_path = os.path.join('static', 'logo.png')
     if os.path.exists(logo_path):
-        story.append(RLImage(logo_path, width=160, height=58))
+        # Aumentamos el tamaño del logo (ej: de 160x58 a 220x80)
+        story.append(RLImage(logo_path, width=220, height=80))
+        # 2. Instagram y Teléfono debajo del logo
+        story.append(Spacer(1, 5))
+        story.append(Paragraph("Instagram: @drasofiafernandez &nbsp;&nbsp;|&nbsp;&nbsp; Teléfono: 0986926714", contact_style))
         story.append(Spacer(1, 10))
+    else:
+        # Si no hay logo, igual mostramos el contacto
+        story.append(Paragraph("Instagram: @drasofiafernandez &nbsp;&nbsp;|&nbsp;&nbsp; Teléfono: 0986926714", contact_style))
+        story.append(Spacer(1, 15))
     
     valid_records = [r for r in patient.records if r.weight is not None and r.weight > 0]
     last_r = valid_records[-1] if valid_records else (patient.records[-1] if patient.records else None)
@@ -605,6 +615,7 @@ def generate_pdf(patient_id):
         
         m_init = first_r.muscle_mass_kg or 0
         m_last = last_r.muscle_mass_kg or 0
+        m_diff = round(m_last - m_init, 2)
         
         c_init = first_r.waist or 0
         c_last = last_r.waist or 0
@@ -612,16 +623,55 @@ def generate_pdf(patient_id):
         
         story.append(Paragraph("RESUMEN DESDE INICIO AL ÚLTIMO CONTROL", section_style))
         
+        # 3. Lógica de colores para las diferencias
+        color_green = colors.HexColor('#2a9d8f') # Verde para mejoras
+        color_red = colors.HexColor('#e63946')   # Rojo para empeoramientos
+        color_neutral = colors.black
+        
+        # Función auxiliar para formatear la diferencia con color y signo
+        def format_diff(val, is_muscle=False):
+            if val == 0:
+                return Paragraph(f"<font color='{color_neutral}'>0.0</font>", ParagraphStyle('C', alignment=1))
+            
+            # Para peso, grasa, cintura: positivo (bajar) es bueno (verde), negativo (subir) es malo (rojo)
+            # Para músculo: positivo (subir) es bueno (verde), negativo (bajar) es malo (rojo)
+            
+            is_good = val > 0 if is_muscle else val > 0 # val > 0 significa que perdió peso/grasa/cintura (bueno) o ganó músculo (bueno)
+            
+            # Formatear el string
+            if is_muscle:
+                # Si es músculo, calculamos m_last - m_init, así que > 0 es ganancia
+                str_val = f"+{val}" if val > 0 else f"{val}"
+            else:
+                # Si es peso/grasa/cintura, calculamos init - last, así que > 0 es pérdida
+                # Para mostrar intuitivamente, si la diferencia init-last > 0 (perdió), mostramos -X (bajó)
+                # Si la diferencia init-last < 0 (ganó), mostramos +X (subió)
+                str_val = f"-{val}" if val > 0 else f"+{abs(val)}"
+            
+            color = color_green if is_good else color_red
+            return Paragraph(f"<font color='{color}'><b>{str_val}</b></font>", ParagraphStyle('C', alignment=1))
+
+        # Crear los objetos Paragraph para las celdas de diferencia
+        w_diff_p = format_diff(w_diff)
+        f_diff_p = format_diff(f_diff)
+        m_diff_p = format_diff(m_diff, is_muscle=True)
+        c_diff_p = format_diff(c_diff)
+
+        # Para centrar los valores normales en la tabla
+        def center_val(val):
+            return Paragraph(f"{val}", ParagraphStyle('C', alignment=1))
+
         sum_data = [
-            ['Peso inicial (kg)', 'Peso último (kg)', 'Peso total perdido (kg)'],
-            [str(w_init), str(w_last), str(w_diff)],
-            ['Grasa inicial (kg)', 'Grasa última (kg)', 'Grasa total perdida (kg)'],
-            [str(f_init), str(f_last), str(f_diff)],
-            ['Músculo inicial (kg)', 'Músculo último (kg)', 'Músculo total (kg)'],
-            [str(m_init), str(m_last), str(round(m_last - m_init, 2))],
-            ['Cintura inicial (cm)', 'Cintura última (cm)', 'Cintura total perdida (cm)'],
-            [str(c_init), str(c_last), str(c_diff)]
+            ['Peso inicial (kg)', 'Peso último (kg)', 'Diferencia Peso (kg)'],
+            [center_val(w_init), center_val(w_last), w_diff_p],
+            ['Grasa inicial (kg)', 'Grasa última (kg)', 'Diferencia Grasa (kg)'],
+            [center_val(f_init), center_val(f_last), f_diff_p],
+            ['Músculo inicial (kg)', 'Músculo último (kg)', 'Diferencia Músculo (kg)'],
+            [center_val(m_init), center_val(m_last), m_diff_p],
+            ['Cintura inicial (cm)', 'Cintura última (cm)', 'Diferencia Cintura (cm)'],
+            [center_val(c_init), center_val(c_last), c_diff_p]
         ]
+        
         sum_table = Table(sum_data, colWidths=[180, 180, 180])
         sum_table.setStyle(TableStyle([
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
@@ -670,7 +720,7 @@ def generate_pdf(patient_id):
         story.append(Paragraph(plan_text, body_style))
         story.append(Spacer(1, 15))
         
-        story.append(Paragraph("Instagram: @drasofiafernandez &nbsp;&nbsp;|&nbsp;&nbsp; Teléfono: 0986926714", footer_style))
+        # Eliminamos el pie de página que estaba aquí abajo
         
     else:
         story.append(Paragraph("No hay controles antropométricos registrados todavía para este paciente.", body_style))
