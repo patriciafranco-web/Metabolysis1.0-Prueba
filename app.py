@@ -97,7 +97,6 @@ class MedicalRecord(db.Model):
     basal_metabolism = db.Column(db.Float)
     waist = db.Column(db.Float)
     
-    # Biomarcadores avanzados detallados de Renpho
     masa_grasa_kg = db.Column(db.Float)
     porcentaje_musculo = db.Column(db.Float)
     porcentaje_musculo_esqueletico = db.Column(db.Float)
@@ -163,17 +162,44 @@ class MedicalRecord(db.Model):
         return 0
 
     @property
-    def homair(self):
-        if self.glucose and self.insulin:
-            return round((self.glucose * self.insulin) / 405, 2)
-        return None
-
-    @property
-    def waist_height_ratio(self):
+    def ica_value(self):
         if self.waist and self.height and self.height > 0:
             h_cm = self.height if self.height > 3 else self.height * 100
             return round(self.waist / h_cm, 2)
         return None
+
+    @property
+    def ica_status(self):
+        val = self.ica_value
+        if not val:
+            return ("Sin datos", "secondary")
+        if val < 0.5:
+            return ("Saludable (Riesgo Bajo)", "success")
+        elif 0.5 <= val <= 0.6:
+            return ("Sobrepeso Abdominal (Moderado)", "warning")
+        else:
+            return ("Obesidad Central (Alto Riesgo)", "danger")
+
+    @property
+    def cardio_risk_estimate(self):
+        score = 0
+        if self.cholesterol_tot and self.cholesterol_tot > 240: score += 2
+        elif self.cholesterol_tot and self.cholesterol_tot > 200: score += 1
+        
+        if self.pa:
+            try:
+                sys_bp = int(self.pa.split('/')[0])
+                if sys_bp >= 140: score += 2
+                elif sys_bp >= 130: score += 1
+            except:
+                pass
+                
+        if score >= 3:
+            return ("Riesgo Cardiovascular Alto", "danger")
+        elif score == 2:
+            return ("Riesgo Cardiovascular Moderado", "warning")
+        else:
+            return ("Riesgo Cardiovascular Bajo / Estable", "success")
 
 class PatientPhoto(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -270,7 +296,7 @@ def new_patient():
             tratamiento_base=format_text(request.form.get('tratamiento_base')),
             historial_cirugias=format_text(request.form.get('historial_cirugias')),
             alergia_farmacos=format_text(request.form.get('alergia_farmacos')),
-            cant_hijos=format_text(request.form.get('cant_hijos')),
+            cant_hijos=request.form.get('cant_hijos'),
             menarca=format_text(request.form.get('menarca')),
             menstruacion_regular=format_text(request.form.get('menstruacion_regular')),
             anticonceptivos=format_text(request.form.get('anticonceptivos')),
@@ -338,7 +364,6 @@ def new_record(patient_id):
             basal_metabolism=float(request.form.get('basal_metabolism') or float(request.form.get('tasa_metabolica_basal') or 0)),
             waist=wst_curr,
             
-            # Captura de campos específicos Renpho
             masa_grasa_kg=float(request.form.get('masa_grasa_kg') or 0),
             porcentaje_musculo=float(request.form.get('porcentaje_musculo') or 0),
             porcentaje_musculo_esqueletico=float(request.form.get('porcentaje_musculo_esqueletico') or 0),
@@ -487,7 +512,7 @@ def export_excel():
                     r.vldl, r.uric_acid, r.got, r.gpt, r.fa, r.bili_tot, r.bili_dir, r.bili_ind, r.urea, r.creatinine,
                     r.tsh, r.t4, r.t3, r.anti_tpo, r.vit_d, r.vit_b12, r.calcium, r.magnesium, r.phosphorus, r.chlorine,
                     r.ecografia_abdominal, r.ecografia_tiroidea, r.otros_estudios, r.indicaciones_tratamiento, r.medications,
-                    r.proximo_control, r.homair, r.waist_height_ratio, r.conducta_medica
+                    r.proximo_control, r.homair, r.ica_value, r.conducta_medica
                 ])
         else:
             writer.writerow([p.id, p.full_name, p.ci, p.age, p.gender, p.phone, p.sanatorio, p.procedencia, p.profession, p.pathology_type, p.seguro_medico, p.fecha_inicio_tratamiento, p.evolution_years, p.antecedentes_familiares, p.antecedentes_personales, p.comorbidities, p.tratamiento_base, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''])
