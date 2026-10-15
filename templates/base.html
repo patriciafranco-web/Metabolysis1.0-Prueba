@@ -3,42 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Metabolisys - Dra. Sofía</title>
+    <title>Metabolisys - Sistema Clínico</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 </head>
-<body style="background-color: #121212 !important; color: white;">
-    <!-- Barra Superior Fija -->
-    <nav style="background-color: #1a1a1a !important; border-bottom: 2px solid #333; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;">
-        
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <!-- Logo -->
-            <a href="/" style="text-decoration: none; display: flex; align-items: center; gap: 8px;">
-                <i class="bi bi-heart-pulse-fill text-danger fs-2"></i>
-                <span style="color: white; font-weight: bold; font-size: 1.5rem;">Metabolisys</span>
-            </a>
+<body class="bg-light" style="background-color: #121212 !important;">
+    <nav class="navbar navbar-dark shadow-sm" style="background-color: #1a1a1a !important; border-bottom: 1px solid #333;">
+        <div class="container-fluid px-4 d-flex justify-content-between align-items-center flex-wrap">
             
-            <!-- Separador y Nombre Doctora -->
-            <div style="border-left: 2px solid #555; height: 30px; margin: 0 5px;"></div>
-            <span style="color: #ffc107; font-weight: 600; font-size: 0.95rem;">
-                Dra. Sofía Martínez <span style="color: #aaa; font-weight: 400;">| Endocrinología y Metabolismo</span>
-            </span>
-        </div>
+            <div class="d-flex align-items-center my-1">
+                <a href="/" class="text-decoration-none d-flex align-items-center me-3">
+                    <i class="bi bi-heart-pulse-fill text-danger fs-3 me-2"></i>
+                    <span class="text-danger fw-bold fs-4">Metabolisys</span>
+                </a>
+                <div class="border-start border-secondary ps-3 text-warning" style="font-size: 0.95rem;">
+                    <strong>Dra. Sofía Martínez</strong> <span class="text-white-50">| Endocrinología y Metabolismo</span>
+                </div>
+            </div>
 
-        <!-- Botones Sesión -->
-        {% if session.get('user_id') %}
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <span style="color: white; font-size: 0.9rem;">
-                <i class="bi bi-person-circle text-warning me-1"></i> {{ session.get('username') }}
-            </span>
-            <a href="/logout" class="btn btn-outline-danger btn-sm fw-bold">Salir</a>
+            {% if session.get('user_id') %}
+            <div class="d-flex align-items-center my-1">
+                <span class="text-light me-3 small"><i class="bi bi-person-circle"></i> {{ session.get('username') }}</span>
+                <a href="/logout" class="btn btn-outline-light btn-sm"><i class="bi bi-box-arrow-right"></i> Salir</a>
+            </div>
+            {% endif %}
+            
         </div>
-        {% endif %}
     </nav>
-
-    <!-- Contenido -->
+    
     <div class="container my-4">
         {% block content %}{% endblock %}
     </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
