@@ -56,7 +56,6 @@ class Patient(db.Model):
     pathology_type = db.Column(db.String(100))
     evolution_years = db.Column(db.Integer)
     
-    # Nuevos campos solicitados
     seguro_medico = db.Column(db.String(100))
     fecha_inicio_tratamiento = db.Column(db.String(50))
 
@@ -84,7 +83,6 @@ class MedicalRecord(db.Model):
     patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'), nullable=False)
     date = db.Column(db.String(20), nullable=False)
     
-    # Signos vitales y marca de balanza solicitados
     marca_balanza = db.Column(db.String(50))
     pa = db.Column(db.String(20))
     fc = db.Column(db.Integer)
@@ -98,6 +96,11 @@ class MedicalRecord(db.Model):
     muscle_mass_pct = db.Column(db.Float)
     basal_metabolism = db.Column(db.Float)
     waist = db.Column(db.Float)
+    
+    masa_osea = db.Column(db.Float)
+    agua_corporal_pct = db.Column(db.Float)
+    grasa_subcutanea_pct = db.Column(db.Float)
+    proteina_pct = db.Column(db.Float)
     
     weight_lost = db.Column(db.Float, default=0.0)
     fat_lost = db.Column(db.Float, default=0.0)
@@ -257,7 +260,7 @@ def new_patient():
             tratamiento_base=format_text(request.form.get('tratamiento_base')),
             historial_cirugias=format_text(request.form.get('historial_cirugias')),
             alergia_farmacos=format_text(request.form.get('alergia_farmacos')),
-            cant_hijos=request.form.get('cant_hijos'),
+            cant_hijos=format_text(request.form.get('cant_hijos')),
             menarca=format_text(request.form.get('menarca')),
             menstruacion_regular=format_text(request.form.get('menstruacion_regular')),
             anticonceptivos=format_text(request.form.get('anticonceptivos')),
@@ -324,6 +327,11 @@ def new_record(patient_id):
             muscle_mass_pct=float(request.form.get('muscle_mass_pct') or 0),
             basal_metabolism=float(request.form.get('basal_metabolism') or 0),
             waist=wst_curr,
+            
+            masa_osea=float(request.form.get('masa_osea') or 0),
+            agua_corporal_pct=float(request.form.get('agua_corporal_pct') or 0),
+            grasa_subcutanea_pct=float(request.form.get('grasa_subcutanea_pct') or 0),
+            proteina_pct=float(request.form.get('proteina_pct') or 0),
             
             weight_lost=round(w_init - w_curr, 2) if first_record else 0.0,
             fat_lost=round(f_init - f_curr, 2) if first_record else 0.0,
@@ -440,7 +448,7 @@ def export_excel():
         'ID', 'Nombre', 'CI', 'Edad', 'Género', 'Teléfono', 'Sanatorio', 'Procedencia', 'Profesión', 'Patología', 
         'Seguro Médico', 'Inicio Tratamiento', 'Años Evolución', 'Antecedentes Familiares', 'Antecedentes Personales', 'Comorbilidades', 'Tratamiento Base',
         'Fecha Control', 'Balanza', 'PA', 'FC', 'Altura (cm)', 'Peso (kg)', 'Peso Perdido (kg)', 'IMC', 'Grasa Corp (kg)', 'Grasa Perdida (kg)', 'Grasa Corp (%)', 'Grasa Visceral', 
-        'Músculo (kg)', 'Músculo Delta (kg)', 'Músculo (%)', 'Metabolismo Basal', 'Cintura (cm)', 'Cintura Perdida (cm)', 'Glicemia', 'Insulina', 'HbA1c (%)', 
+        'Músculo (kg)', 'Músculo Delta (kg)', 'Músculo (%)', 'Metabolismo Basal', 'Masa Ósea', 'Agua Corporal (%)', 'Grasa Subcutánea (%)', 'Proteína (%)', 'Cintura (cm)', 'Cintura Perdida (cm)', 'Glicemia', 'Insulina', 'HbA1c (%)', 
         'Triglicéridos', 'Col. Tot', 'HDL', 'LDL', 'VLDL', 'Ácido Úrico', 'GOT', 'GPT', 'FA', 'Bili Tot', 'Bili Dir', 
         'Bili Ind', 'Urea', 'Creatinina', 'TSH', 'T4', 'T3', 'Anti-TPO', 'Vit D', 'Vit B12', 'Calcio', 'Magnesio', 
         'Fósforo', 'Cloro', 'Eco Abdominal', 'Eco Tiroidea', 'Otros Estudios', 'Indicaciones / Tratamiento', 'Medicación', 
@@ -455,7 +463,7 @@ def export_excel():
                     p.id, p.full_name, p.ci, p.age, p.gender, p.phone, p.sanatorio, p.procedencia, p.profession, p.pathology_type,
                     p.seguro_medico, p.fecha_inicio_tratamiento, p.evolution_years, p.antecedentes_familiares, p.antecedentes_personales, p.comorbidities, p.tratamiento_base,
                     r.date, r.marca_balanza, r.pa, r.fc, r.height, r.weight, r.weight_lost, r.bmi, r.body_fat_kg, r.fat_lost, r.body_fat_pct, r.visceral_fat, r.muscle_mass_kg, r.muscle_delta, r.muscle_mass_pct,
-                    r.basal_metabolism, r.waist, r.waist_lost, r.glucose, r.insulin, r.hba1c, r.triglycerides, r.cholesterol_tot, r.hdl, r.ldl,
+                    r.basal_metabolism, r.masa_osea, r.agua_corporal_pct, r.grasa_subcutanea_pct, r.proteina_pct, r.waist, r.waist_lost, r.glucose, r.insulin, r.hba1c, r.triglycerides, r.cholesterol_tot, r.hdl, r.ldl,
                     r.vldl, r.uric_acid, r.got, r.gpt, r.fa, r.bili_tot, r.bili_dir, r.bili_ind, r.urea, r.creatinine,
                     r.tsh, r.t4, r.t3, r.anti_tpo, r.vit_d, r.vit_b12, r.calcium, r.magnesium, r.phosphorus, r.chlorine,
                     r.ecografia_abdominal, r.ecografia_tiroidea, r.otros_estudios, r.indicaciones_tratamiento, r.medications,
@@ -475,7 +483,7 @@ def export_excel():
 def generate_pdf(patient_id):
     patient = Patient.query.get_or_404(patient_id)
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=20, leftMargin=20, topMargin=20, bottomMargin=20)
     story = []
     
     styles = getSampleStyleSheet()
@@ -492,10 +500,9 @@ def generate_pdf(patient_id):
         'DocFooter', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=9, alignment=1, textColor=colors.HexColor('#006666')
     )
     
-    # AGREGAR LOGO EN EL PDF SI EXISTE static/logo.png
     logo_path = os.path.join('static', 'logo.png')
     if os.path.exists(logo_path):
-        story.append(RLImage(logo_path, width=180, height=65))
+        story.append(RLImage(logo_path, width=160, height=58))
         story.append(Spacer(1, 10))
     
     valid_records = [r for r in patient.records if r.weight is not None and r.weight > 0]
@@ -507,7 +514,7 @@ def generate_pdf(patient_id):
     
     if valid_records:
         table_data = [[
-            'FECHA', 'BALANZA', 'PA / FC', 'ALTURA\n(cm)', 'PESO\n(kg)', 'GRASA\n(kg)', 'GRASA\n(%)', 'VISC.', 'MÚSC.\n(kg)', 'MÚSC.\n(%)', 'METAB.\n(kcal)', 'IMC', 'CA\n(cm)'
+            'FECHA', 'BAL.', 'PA / FC', 'ALT.\n(cm)', 'PESO\n(kg)', 'GRASA\n(kg)', 'GRASA\n(%)', 'VISC.', 'MÚSC.\n(kg)', 'MÚSC.\n(%)', 'METAB.\n(kcal)', 'IMC', 'CA\n(cm)'
         ]]
         for r in valid_records:
             pa_fc = f"{r.pa or '-'} / {r.fc or '-'}"
@@ -517,7 +524,7 @@ def generate_pdf(patient_id):
                 str(r.muscle_mass_pct or '-'), str(r.basal_metabolism or '-'), str(r.bmi or '-'), str(r.waist or '-')
             ])
         
-        t = Table(table_data, colWidths=[50, 50, 50, 35, 35, 40, 35, 35, 40, 35, 45, 30, 30])
+        t = Table(table_data, colWidths=[55, 45, 50, 35, 35, 38, 35, 35, 38, 35, 45, 30, 30])
         t.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e8f4f4')),
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
@@ -543,7 +550,6 @@ def generate_pdf(patient_id):
         
         m_init = first_r.muscle_mass_kg or 0
         m_last = last_r.muscle_mass_kg or 0
-        m_diff = round(m_last - m_init, 2)
         
         c_init = first_r.waist or 0
         c_last = last_r.waist or 0
@@ -557,7 +563,7 @@ def generate_pdf(patient_id):
             ['Grasa inicial (kg)', 'Grasa última (kg)', 'Grasa total perdida (kg)'],
             [str(f_init), str(f_last), str(f_diff)],
             ['Músculo inicial (kg)', 'Músculo último (kg)', 'Músculo total (kg)'],
-            [str(m_init), str(m_last), str(m_diff)],
+            [str(m_init), str(m_last), str(round(m_last - m_init, 2))],
             ['Cintura inicial (cm)', 'Cintura última (cm)', 'Cintura total perdida (cm)'],
             [str(c_init), str(c_last), str(c_diff)]
         ]
@@ -607,10 +613,8 @@ def generate_pdf(patient_id):
             plan_text = "Sin indicaciones registradas para este control."
             
         story.append(Paragraph(plan_text, body_style))
-        story.append(Spacer(1, 20))
+        story.append(Spacer(1, 15))
         
-        # AGREGAR INSTAGRAM Y TELÉFONO SOLICITADOS AL PIE DEL INFORME
-        story.append(Spacer(1, 10))
         story.append(Paragraph("Instagram: @drasofiafernandez &nbsp;&nbsp;|&nbsp;&nbsp; Teléfono: 0986926714", footer_style))
         
     else:
