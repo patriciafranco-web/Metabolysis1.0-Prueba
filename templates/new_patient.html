@@ -55,12 +55,24 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Procedencia</label>
-                    <input type="text" class="form-control" name="procedencia" placeholder="Ej. Santaní">
+                    <input type="text" class="form-control" name="procedencia" placeholder="Ej. Luque">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Profesión</label>
                     <input type="text" class="form-control" name="profession">
                 </div>
+                
+                <!-- NUEVOS CAMPOS SOLICITADOS POR LA DRA. SOFÍA -->
+                <div class="col-md-6">
+                    <label class="form-label fw-bold text-warning">Seguro Médico</label>
+                    <input type="text" class="form-control" name="seguro_medico" placeholder="Ej. San Roque / Copetrol">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold text-warning">Fecha de Inicio de Tratamiento</label>
+                    <input type="text" class="form-control" name="fecha_inicio_tratamiento" placeholder="Ej. Enero 2026">
+                </div>
+                <!-- FIN DE NUEVOS CAMPOS -->
+
                 <div class="col-md-6">
                     <label class="form-label">Sanatorio / Consultorio *</label>
                     <input type="text" class="form-control" name="sanatorio" required value="Consultorio Principal">
@@ -142,7 +154,7 @@
                 </div>
             </div>
 
-            <!-- Botón y Sección Desplegable para Checkup GLP-1 con tabla de Sí/No -->
+            <!-- Sección Desplegable para Checkup GLP-1 con tabla de Sí/No -->
             <div class="mt-4">
                 <button class="btn btn-outline-warning w-100 py-2 fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#glp1Collapse">
                     📋 Checklist GLP-1 y Antecedentes Críticos (Hacer clic para desplegar matriz)
@@ -160,77 +172,77 @@
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td>Antecedentes personales o familiares de carcinoma medular de tiroides (MTC)[cite: 6, 10]</td>
+                                        <td>Antecedentes personales o familiares de carcinoma medular de tiroides (MTC)</td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_1" value="No" checked></td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_1" value="Sí"></td>
                                     </tr>
                                     <tr>
-                                        <td>Diagnóstico de neoplasia endocrina múltiple tipo 2 (MEN2)[cite: 6, 10]</td>
+                                        <td>Diagnóstico de neoplasia endocrina múltiple tipo 2 (MEN2)</td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_2" value="No" checked></td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_2" value="Sí"></td>
                                     </tr>
                                     <tr>
-                                        <td>Antecedentes de Pancreatitis aguda o crónica[cite: 6, 10]</td>
+                                        <td>Antecedentes de Pancreatitis aguda o crónica</td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_3" value="No" checked></td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_3" value="Sí"></td>
                                     </tr>
                                     <tr>
-                                        <td>Antecedentes/enfermedad actual de vesícula biliar (cálculos, colecistitis)[cite: 6, 10]</td>
+                                        <td>Antecedentes/enfermedad actual de vesícula biliar (cálculos, colecistitis)</td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_4" value="No" checked></td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_4" value="Sí"></td>
                                     </tr>
                                     <tr>
-                                        <td>Enfermedad gastrointestinal severa o gastroparesia[cite: 6, 10]</td>
+                                        <td>Enfermedad gastrointestinal severa o gastroparesia</td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_5" value="No" checked></td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_5" value="Sí"></td>
                                     </tr>
                                     <tr>
-                                        <td>Enfermedad renal crónica o episodios de deshidratación frecuentes[cite: 6, 10]</td>
+                                        <td>Enfermedad renal crónica o episodios de deshidratación frecuentes</td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_6" value="No" checked></td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_6" value="Sí"></td>
                                     </tr>
                                     <tr>
-                                        <td>Enfermedad hepática grave[cite: 6, 10]</td>
+                                        <td>Enfermedad hepática grave</td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_7" value="No" checked></td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_7" value="Sí"></td>
                                     </tr>
                                     <tr>
-                                        <td>Retinopatía diabética conocida[cite: 6, 10]</td>
+                                        <td>Retinopatía diabética conocida</td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_8" value="No" checked></td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_8" value="Sí"></td>
                                     </tr>
                                     <tr>
-                                        <td>Historia de depresión severa, ideación o conducta suicida[cite: 6, 10]</td>
+                                        <td>Historia de depresión severa, ideación o conducta suicida</td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_9" value="No" checked></td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_9" value="Sí"></td>
                                     </tr>
                                     <tr>
-                                        <td>Cirugía o anestesia general/sedación profunda programada pronto[cite: 6, 10]</td>
+                                        <td>Cirugía o anestesia general/sedación profunda programada pronto</td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_10" value="No" checked></td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_10" value="Sí"></td>
                                     </tr>
                                     <tr>
-                                        <td>Uso concomitante de otros fármacos para bajar de peso o GLP-1[cite: 6, 10]</td>
+                                        <td>Uso concomitante de otros fármacos para bajar de peso o GLP-1</td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_11" value="No" checked></td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_11" value="Sí"></td>
                                     </tr>
                                     <tr>
-                                        <td>Uso de insulina o sulfonilureas?[cite: 6, 10]</td>
+                                        <td>Uso de insulina o sulfonilureas?</td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_12" value="No" checked></td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_12" value="Sí"></td>
                                     </tr>
                                     <tr>
-                                        <td>Fármacos orales con margen terapéutico estrecho[cite: 6, 10]</td>
+                                        <td>Fármacos orales con margen terapéutico estrecho</td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_13" value="No" checked></td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_13" value="Sí"></td>
                                     </tr>
                                     <tr>
-                                        <td>Alergia/hipersensibilidad previa a GLP-1 o excipientes[cite: 6, 10]</td>
+                                        <td>Alergia/hipersensibilidad previa a GLP-1 o excipientes</td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_14" value="No" checked></td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_14" value="Sí"></td>
                                     </tr>
                                     <tr>
-                                        <td>Plan de embarazo en los próximos 2 meses o cercano / Lactancia[cite: 6, 10]</td>
+                                        <td>Plan de embarazo en los próximos 2 meses o cercano / Lactancia</td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_15" value="No" checked></td>
                                         <td class="text-center"><input class="form-check-input" type="radio" name="glp1_15" value="Sí"></td>
                                     </tr>
