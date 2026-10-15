@@ -12,11 +12,13 @@
         .table-dark { background-color: #1e1e1e !important; color: #ffffff !important; }
         .btn-primary { background-color: #e63946; border: none; }
         .btn-primary:hover { background-color: #d90429; }
-        .section-title { color: #ff6b6b; border-bottom: 1px solid #333; padding-bottom: 5px; margin-top: 20px; margin-bottom: 15px; }
+        .section-title { color: #ff6b6b; border-bottom: 1px solid #333; padding-bottom: 5px; margin-top: 25px; margin-bottom: 15px; }
+        .patient-img { width: 100%; height: 220px; object-fit: cover; border-radius: 8px; border: 1px solid #444; }
     </style>
 </head>
 <body class="py-4">
-<div class="container" style="max-width: 1100px;">
+<div class="container" style="max-width: 1200px;">
+    <!-- CABECERA Y BOTONES -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <a href="{{ url_for('index') }}" class="btn btn-secondary btn-sm">⬅️ Volver al Listado</a>
         <h2 class="text-danger fw-bold m-0">❤️ METABOLISYS</h2>
@@ -38,17 +40,33 @@
             <div class="col-md-3"><strong>Sanatorio:</strong> {{ patient.sanatorio }}</div>
             <div class="col-md-3"><strong>Seguro Médico:</strong> {{ patient.seguro_medico or 'N/D' }}</div>
             <div class="col-md-3"><strong>Inicio Tratamiento:</strong> {{ patient.fecha_inicio_tratamiento or 'N/D' }}</div>
+            <div class="col-md-3"><strong>Procedencia:</strong> {{ patient.procedencia or 'N/D' }}</div>
+            <div class="col-md-3"><strong>Profesión:</strong> {{ patient.profession or 'N/D' }}</div>
             <div class="col-md-3"><strong>Patología Principal:</strong> {{ patient.pathology_type or 'N/D' }}</div>
+            <div class="col-md-3"><strong>Años de Evolución:</strong> {{ patient.evolution_years or 'N/D' }}</div>
+        </div>
+
+        <hr class="border-secondary my-4">
+
+        <h5 class="text-info mb-2">Antecedentes y Estilo de Vida</h5>
+        <div class="row g-3">
+            <div class="col-md-6"><strong>Ant. Familiares:</strong> {{ patient.antecedentes_familiares or 'Ninguno' }}</div>
+            <div class="col-md-6"><strong>Ant. Personales:</strong> {{ patient.antecedentes_personales or 'Ninguno' }}</div>
+            <div class="col-md-6"><strong>Cirugías:</strong> {{ patient.historial_cirugias or 'Ninguna' }}</div>
+            <div class="col-md-6"><strong>Alergias:</strong> {{ patient.alergia_farmacos or 'Ninguna' }}</div>
+            <div class="col-md-6"><strong>Tratamiento Base:</strong> {{ patient.tratamiento_base or 'Ninguno' }}</div>
+            {% if patient.gender == 'Mujer' %}
+            <div class="col-md-12 text-warning mt-2"><strong>Datos Ginecológicos:</strong> Hijos: {{ patient.cant_hijos or '-' }} | Menarca: {{ patient.menarca or '-' }} | Menstruación Regular: {{ patient.menstruacion_regular or '-' }} | Anticonceptivos: {{ patient.anticonceptivos or '-' }}</div>
+            {% endif %}
         </div>
     </div>
 
-    <!-- SECCIÓN DE CALCULADORAS CLÍNICAS AUTOMÁTICAS CON COLORES -->
+    <!-- CALCULADORAS CLÍNICAS AUTOMÁTICAS CON COLORES -->
     {% if valid_records %}
     {% set last_r = valid_records[-1] %}
     <div class="card p-3 mb-4 border-secondary bg-black">
         <h6 class="text-warning mb-3">🧮 Calculadoras Clínicas Automáticas (Último Control: {{ last_r.date }})</h6>
         <div class="row g-3">
-            <!-- Tarjeta ICA -->
             <div class="col-md-6">
                 <div class="p-3 rounded border border-secondary bg-dark">
                     <span class="text-muted small">ÍNDICE CINTURA-ALTURA (ICA)</span>
@@ -57,7 +75,6 @@
                     <span class="badge bg-{{ ica_info[1] }} px-3 py-2 fs-6">{{ ica_info[0] }}</span>
                 </div>
             </div>
-            <!-- Tarjeta Riesgo Cardiovascular -->
             <div class="col-md-6">
                 <div class="p-3 rounded border border-secondary bg-dark">
                     <span class="text-muted small">ESTIMACIÓN RIESGO CARDIOVASCULAR</span>
@@ -70,9 +87,9 @@
     </div>
     {% endif %}
 
-    <!-- HISTORIAL DE CONTROLES -->
-    <div class="card p-4 shadow-lg rounded-4">
-        <h5 class="section-title">Historial de Controles Antropométricos y Clínicos</h5>
+    <!-- HISTORIAL DE CONTROLES ANTROPOMÉTRICOS -->
+    <div class="card p-4 shadow-lg rounded-4 mb-4">
+        <h5 class="section-title">Evolución Antropométrica</h5>
         {% if valid_records %}
         <div class="table-responsive">
             <table class="table table-dark table-striped table-hover align-middle text-center small">
@@ -81,12 +98,15 @@
                         <th>Fecha</th>
                         <th>Balanza</th>
                         <th>PA / FC</th>
-                        <th>Peso (kg)</th>
+                        <th>Altura</th>
+                        <th>Peso</th>
                         <th>IMC</th>
-                        <th>Cintura (cm)</th>
+                        <th>Cintura</th>
                         <th>Grasa (%)</th>
+                        <th>Grasa (kg)</th>
+                        <th>Visceral</th>
                         <th>Músculo (kg)</th>
-                        <th>Glicemia</th>
+                        <th>Metabolismo</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -95,19 +115,94 @@
                         <td>{{ r.date }}</td>
                         <td>{{ r.marca_balanza or '-' }}</td>
                         <td>{{ r.pa or '-' }} / {{ r.fc or '-' }}</td>
+                        <td>{{ r.height or '-' }}</td>
                         <td>{{ r.weight or '-' }}</td>
                         <td>{{ r.bmi }}</td>
                         <td>{{ r.waist or '-' }}</td>
                         <td>{{ r.body_fat_pct or '-' }}</td>
+                        <td>{{ r.body_fat_kg or '-' }}</td>
+                        <td>{{ r.visceral_fat or '-' }}</td>
                         <td>{{ r.muscle_mass_kg or '-' }}</td>
-                        <td>{{ r.glucose or '-' }}</td>
+                        <td>{{ r.basal_metabolism or '-' }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
         {% else %}
-        <p class="text-muted text-center py-3">No hay registros de control cargados todavía.</p>
+        <p class="text-muted text-center py-3">No hay registros antropométricos cargados todavía.</p>
+        {% endif %}
+    </div>
+
+    <!-- HISTORIAL DE LABORATORIOS -->
+    <div class="card p-4 shadow-lg rounded-4 mb-4">
+        <h5 class="section-title">Historial de Laboratorios y Bioquímica</h5>
+        {% if valid_records %}
+        <div class="table-responsive">
+            <table class="table table-dark table-striped table-hover align-middle text-center small">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Glicemia</th>
+                        <th>Insulina</th>
+                        <th>HbA1c</th>
+                        <th>HOMA-IR</th>
+                        <th>Triglicéridos</th>
+                        <th>Col. Tot</th>
+                        <th>HDL</th>
+                        <th>LDL</th>
+                        <th>TGO/TGP</th>
+                        <th>TSH</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in valid_records %}
+                    <tr>
+                        <td>{{ r.date }}</td>
+                        <td>{{ r.glucose or '-' }}</td>
+                        <td>{{ r.insulin or '-' }}</td>
+                        <td>{{ r.hba1c or '-' }}</td>
+                        <td>{{ r.homair or '-' }}</td>
+                        <td>{{ r.triglycerides or '-' }}</td>
+                        <td>{{ r.cholesterol_tot or '-' }}</td>
+                        <td>{{ r.hdl or '-' }}</td>
+                        <td>{{ r.ldl or '-' }}</td>
+                        <td>{{ r.got or '-' }} / {{ r.gpt or '-' }}</td>
+                        <td>{{ r.tsh or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center py-3">No hay laboratorios registrados.</p>
+        {% endif %}
+    </div>
+
+    <!-- GALERÍA DE FOTOS -->
+    <div class="card p-4 shadow-lg rounded-4 mb-4">
+        <h5 class="section-title">📸 Galería de Evolución y Fotografías</h5>
+        {% if patient.photos %}
+        <div class="row g-4">
+            {% for photo in patient.photos %}
+            <div class="col-md-3">
+                <div class="card bg-dark border-secondary p-2">
+                    <a href="{{ url_for('static', filename='uploads/' + photo.filename) }}" target="_blank">
+                        <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}" class="patient-img" alt="Foto Paciente">
+                    </a>
+                    <div class="mt-2 small">
+                        <span class="badge bg-danger mb-1">{{ photo.category }}</span>
+                        <div class="text-muted">Fecha: {{ photo.date }}</div>
+                        {% if photo.notes %}
+                        <div class="text-white mt-1"><em>{{ photo.notes }}</em></div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted text-center py-3">No hay fotos registradas para este paciente.</p>
         {% endif %}
     </div>
 </div>
