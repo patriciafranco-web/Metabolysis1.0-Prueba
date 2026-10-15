@@ -216,17 +216,18 @@ Patient.photos = db.relationship('PatientPhoto', backref='patient', lazy=True, c
 
 with app.app_context():
     db.create_all()
-    # Mantenemos a admin pero creamos a la doctora
+    # Mantenemos a admin
     admin_user = User.query.filter_by(username='admin').first()
     if not admin_user:
         hashed_pw = generate_password_hash('123', method='pbkdf2:sha256')
         admin = User(username='admin', password_hash=hashed_pw)
         db.session.add(admin)
         
-    doc_user = User.query.filter_by(username='drasofiamartinez').first()
+    # NUEVO USUARIO CORRECTO: drasofiafernandez
+    doc_user = User.query.filter_by(username='drasofiafernandez').first()
     if not doc_user:
         hashed_pw = generate_password_hash('metabopy', method='pbkdf2:sha256')
-        doc = User(username='drasofiamartinez', password_hash=hashed_pw)
+        doc = User(username='drasofiafernandez', password_hash=hashed_pw)
         db.session.add(doc)
     
     db.session.commit()
@@ -249,7 +250,8 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password_hash, password):
             session['user_id'] = user.id
-            session['username'] = "Dra. Sofía" if username == 'drasofiamartinez' else username
+            # Reconoce el nuevo usuario
+            session['username'] = "Dra. Sofía" if username == 'drasofiafernandez' else username
             return redirect(url_for('index'))
         else:
             error = 'Usuario o contraseña incorrectos.'
