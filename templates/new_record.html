@@ -32,15 +32,14 @@
                 <input type="date" class="form-control" name="date" required style="max-width: 300px;">
             </div>
 
-            <!-- NUEVA SECCIÓN DE SIGNOS VITALES Y BALANZA -->
             <div class="card bg-black border-secondary p-3 mb-4">
-                <h6 class="text-warning mb-3">🩺 Datos de la Consulta del Día</h6>
+                <h6 class="text-warning mb-3">🩺 Datos de la Consulta y Balanza</h6>
                 <div class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label">Marca de Balanza</label>
-                        <select class="form-select bg-dark text-white border-secondary" name="marca_balanza">
-                            <option value="InBody">InBody</option>
-                            <option value="Tanita">Tanita</option>
+                        <select class="form-select bg-dark text-white border-secondary" name="marca_balanza" id="balanzaSelect" onchange="toggleRenphoFields()">
+                            <option value="Omron">Omron</option>
+                            <option value="Renpho">Renpho</option>
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -57,7 +56,6 @@
                     </div>
                 </div>
             </div>
-            <!-- FIN DE NUEVA SECCIÓN -->
 
             <ul class="nav nav-pills mb-4" id="recordTab" role="tablist">
                 <li class="nav-item" role="presentation">
@@ -88,43 +86,45 @@
                         <div class="col-md-3"><label class="form-label">Músculo Esquelético (%)</label><input type="number" step="0.1" class="form-control" name="muscle_mass_pct"></div>
                         <div class="col-md-4"><label class="form-label">Metabolismo en Reposo (kcal)</label><input type="number" step="0.1" class="form-control" name="basal_metabolism"></div>
                     </div>
+
+                    <div id="renphoFields" style="display: none;" class="mt-4 p-3 border border-warning rounded bg-black">
+                        <h6 class="text-warning mb-3">⚡ Métricas Avanzadas Adicionales (Renpho)</h6>
+                        <div class="row g-3">
+                            <div class="col-md-3"><label class="form-label">Masa Ósea (kg)</label><input type="number" step="0.1" class="form-control" name="masa_osea"></div>
+                            <div class="col-md-3"><label class="form-label">Agua Corporal (%)</label><input type="number" step="0.1" class="form-control" name="agua_corporal_pct"></div>
+                            <div class="col-md-3"><label class="form-label">Grasa Subcutánea (%)</label><input type="number" step="0.1" class="form-control" name="grasa_subcutanea_pct"></div>
+                            <div class="col-md-3"><label class="form-label">Proteína (%)</label><input type="number" step="0.1" class="form-control" name="proteina_pct"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="tab-pane fade" id="laboratorios" role="tabpanel">
                     <h5 class="section-title">Laboratorios y Bioquímica</h5>
                     <div class="row g-3">
-                        <!-- Nota: Glicemia ya se incluye arriba en signos vitales, pero se mantiene aquí también por compatibilidad si lo cargan por laboratorio -->
                         <div class="col-md-3"><label class="form-label">Insulina</label><input type="number" step="0.1" class="form-control" name="insulin"></div>
                         <div class="col-md-3"><label class="form-label">HbA1c (%)</label><input type="number" step="0.01" class="form-control" name="hba1c"></div>
                         <div class="col-md-3"><label class="form-label">Triglicéridos</label><input type="number" step="0.1" class="form-control" name="triglycerides"></div>
-                        
                         <div class="col-md-3"><label class="form-label">Colesterol Total</label><input type="number" step="0.1" class="form-control" name="cholesterol_tot"></div>
                         <div class="col-md-3"><label class="form-label">HDL</label><input type="number" step="0.1" class="form-control" name="hdl"></div>
                         <div class="col-md-3"><label class="form-label">LDL</label><input type="number" step="0.1" class="form-control" name="ldl"></div>
                         <div class="col-md-3"><label class="form-label">VLDL</label><input type="number" step="0.1" class="form-control" name="vldl"></div>
-
                         <div class="col-md-3"><label class="form-label">Ácido Úrico</label><input type="number" step="0.1" class="form-control" name="uric_acid"></div>
                         <div class="col-md-3"><label class="form-label">GOT</label><input type="number" step="0.1" class="form-control" name="got"></div>
                         <div class="col-md-3"><label class="form-label">GPT</label><input type="number" step="0.1" class="form-control" name="gpt"></div>
                         <div class="col-md-3"><label class="form-label">FA</label><input type="number" step="0.1" class="form-control" name="fa"></div>
-
                         <div class="col-md-4"><label class="form-label">Bili Tot</label><input type="number" step="0.1" class="form-control" name="bili_tot"></div>
                         <div class="col-md-4"><label class="form-label">Bili Dir</label><input type="number" step="0.1" class="form-control" name="bili_dir"></div>
                         <div class="col-md-4"><label class="form-label">Bili Ind</label><input type="number" step="0.1" class="form-control" name="bili_ind"></div>
-
                         <div class="col-md-6"><label class="form-label">Urea</label><input type="number" step="0.1" class="form-control" name="urea"></div>
                         <div class="col-md-6"><label class="form-label">Creatinina</label><input type="number" step="0.01" class="form-control" name="creatinine"></div>
-
                         <div class="col-md-3"><label class="form-label">TSH</label><input type="number" step="0.01" class="form-control" name="tsh"></div>
                         <div class="col-md-3"><label class="form-label">T4</label><input type="number" step="0.01" class="form-control" name="t4"></div>
                         <div class="col-md-3"><label class="form-label">T3</label><input type="number" step="0.01" class="form-control" name="t3"></div>
                         <div class="col-md-3"><label class="form-label">Anti-TPO</label><input type="number" step="0.01" class="form-control" name="anti_tpo"></div>
-
                         <div class="col-md-3"><label class="form-label">Vit D</label><input type="number" step="0.1" class="form-control" name="vit_d"></div>
                         <div class="col-md-3"><label class="form-label">Vit B12</label><input type="number" step="0.1" class="form-control" name="vit_b12"></div>
                         <div class="col-md-3"><label class="form-label">Calcio</label><input type="number" step="0.1" class="form-control" name="calcium"></div>
                         <div class="col-md-3"><label class="form-label">Magnesio</label><input type="number" step="0.1" class="form-control" name="magnesium"></div>
-
                         <div class="col-md-6"><label class="form-label">Fósforo</label><input type="number" step="0.1" class="form-control" name="phosphorus"></div>
                         <div class="col-md-6"><label class="form-label">Cloro</label><input type="number" step="0.1" class="form-control" name="chlorine"></div>
                     </div>
@@ -149,7 +149,7 @@
                     </div>
 
                     <div class="card bg-black border-secondary p-3">
-                        <h6 class="text-danger mb-3">📸 Adjuntar Foto de Consulta (Evolución / Lesión en Piel)</h6>
+                        <h6 class="text-danger mb-3">📸 Adjuntar Foto de Consulta</h6>
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label">Categoría</label>
@@ -166,7 +166,7 @@
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Notas de la Foto</label>
-                                <input type="text" class="form-control bg-dark text-white border-secondary" name="photo_notes" placeholder="Ej. Mejora en zona...">
+                                <input type="text" class="form-control bg-dark text-white border-secondary" name="photo_notes" placeholder="Ej. Mejora...">
                             </div>
                         </div>
                     </div>
@@ -180,6 +180,19 @@
         </form>
     </div>
 </div>
+
+<script>
+function toggleRenphoFields() {
+    const balanza = document.getElementById('balanzaSelect').value;
+    const renphoFields = document.getElementById('renphoFields');
+    if (balanza === 'Renpho') {
+        renphoFields.style.display = 'block';
+    } else {
+        renphoFields.style.display = 'none';
+    }
+}
+toggleRenphoFields();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
