@@ -6,16 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #121212 !important; color: #e0e0e0 !important; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .card { background-color: #1e1e1e !important; border: 1px solid #333 !important; color: #ffffff !important; }
-        .table { color: #ffffff !important; border-color: #333 !important; }
+        body { background-color: #121212 !important; color: #f8f9fa !important; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { background-color: #1e1e1e !important; border: 1px solid #444 !important; color: #ffffff !important; }
+        .table { color: #ffffff !important; border-color: #444 !important; }
         .table-dark { background-color: #1e1e1e !important; color: #ffffff !important; }
         .btn-primary { background-color: #e63946; border: none; }
         .btn-primary:hover { background-color: #d90429; }
         .nav-pills .nav-link.active { background-color: #e63946; color: #fff; }
-        .nav-pills .nav-link { color: #aaa; background-color: #1e1e1e; border: 1px solid #333; margin-right: 5px; }
-        .section-title { color: #ff6b6b; border-bottom: 1px solid #333; padding-bottom: 5px; margin-top: 15px; margin-bottom: 15px; }
+        .nav-pills .nav-link { color: #ddd; background-color: #1e1e1e; border: 1px solid #444; margin-right: 5px; }
+        .section-title { color: #ff6b6b; border-bottom: 1px solid #444; padding-bottom: 5px; margin-top: 15px; margin-bottom: 15px; }
         .patient-img { width: 100%; height: 220px; object-fit: cover; border-radius: 8px; border: 1px solid #444; }
+        strong { color: #ffb703; }
     </style>
 </head>
 <body class="py-4">
@@ -35,18 +36,18 @@
     <div class="card p-4 shadow-lg rounded-4 mb-4">
         <h4 class="text-warning mb-3">Filiación y Datos Clínicos: {{ patient.full_name }}</h4>
         <div class="row g-3">
-            <div class="col-md-3"><strong>Cédula (CI):</strong> {{ patient.ci }}</div>
-            <div class="col-md-3"><strong>Edad:</strong> {{ patient.age }} años</div>
-            <div class="col-md-3"><strong>Género:</strong> {{ patient.gender }}</div>
-            <div class="col-md-3"><strong>Teléfono:</strong> {{ patient.phone or 'N/D' }}</div>
-            <div class="col-md-3"><strong>Sanatorio:</strong> {{ patient.sanatorio }}</div>
-            <div class="col-md-3"><strong>Seguro Médico:</strong> {{ patient.seguro_medico or 'N/D' }}</div>
-            <div class="col-md-3"><strong>Inicio Tratamiento:</strong> {{ patient.fecha_inicio_tratamiento or 'N/D' }}</div>
-            <div class="col-md-3"><strong>Patología Principal:</strong> {{ patient.pathology_type or 'N/D' }}</div>
+            <div class="col-md-3"><strong>Cédula (CI):</strong> <span class="text-white">{{ patient.ci }}</span></div>
+            <div class="col-md-3"><strong>Edad:</strong> <span class="text-white">{{ patient.age }} años</span></div>
+            <div class="col-md-3"><strong>Género:</strong> <span class="text-white">{{ patient.gender }}</span></div>
+            <div class="col-md-3"><strong>Teléfono:</strong> <span class="text-white">{{ patient.phone or 'N/D' }}</span></div>
+            <div class="col-md-3"><strong>Sanatorio:</strong> <span class="text-white">{{ patient.sanatorio }}</span></div>
+            <div class="col-md-3"><strong>Seguro Médico:</strong> <span class="text-white">{{ patient.seguro_medico or 'N/D' }}</span></div>
+            <div class="col-md-3"><strong>Inicio Tratamiento:</strong> <span class="text-white">{{ patient.fecha_inicio_tratamiento or 'N/D' }}</span></div>
+            <div class="col-md-3"><strong>Patología Principal:</strong> <span class="text-white">{{ patient.pathology_type or 'N/D' }}</span></div>
         </div>
 
         <hr class="border-secondary my-3">
-        <div class="row g-3 small text-muted">
+        <div class="row g-3 text-light">
             <div class="col-md-6"><strong>Ant. Familiares:</strong> {{ patient.antecedentes_familiares or 'Ninguno' }}</div>
             <div class="col-md-6"><strong>Ant. Personales:</strong> {{ patient.antecedentes_personales or 'Ninguno' }}</div>
             <div class="col-md-6"><strong>Tratamiento Base:</strong> {{ patient.tratamiento_base or 'Ninguno' }}</div>
@@ -64,16 +65,16 @@
         <div class="row g-3">
             <div class="col-md-6">
                 <div class="p-3 rounded border border-secondary bg-dark">
-                    <span class="text-muted small">ÍNDICE CINTURA-ALTURA (ICA)</span>
-                    <h4 class="fw-bold mb-1">{{ last_r.ica_value or 'N/D' }}</h4>
+                    <span class="text-info small fw-bold">ÍNDICE CINTURA-ALTURA (ICA)</span>
+                    <h4 class="fw-bold mb-1 text-white">{{ last_r.ica_value or 'N/D' }}</h4>
                     {% set ica_info = last_r.ica_status %}
                     <span class="badge bg-{{ ica_info[1] }} px-3 py-2 fs-6">{{ ica_info[0] }}</span>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="p-3 rounded border border-secondary bg-dark">
-                    <span class="text-muted small">ESTIMACIÓN RIESGO CARDIOVASCULAR</span>
-                    <h4 class="fw-bold mb-1">Evaluación Automática</h4>
+                    <span class="text-info small fw-bold">ESTIMACIÓN RIESGO CARDIOVASCULAR</span>
+                    <h4 class="fw-bold mb-1 text-white">Evaluación Automática</h4>
                     {% set cardio_info = last_r.cardio_risk_estimate %}
                     <span class="badge bg-{{ cardio_info[1] }} px-3 py-2 fs-6">{{ cardio_info[0] }}</span>
                 </div>
@@ -141,7 +142,7 @@
                     </table>
                 </div>
                 {% else %}
-                <p class="text-muted text-center py-3">No hay registros antropométricos cargados todavía.</p>
+                <p class="text-light text-center py-3">No hay registros antropométricos cargados todavía.</p>
                 {% endif %}
             </div>
         </div>
@@ -188,7 +189,7 @@
                     </table>
                 </div>
                 {% else %}
-                <p class="text-muted text-center py-3">No hay laboratorios registrados.</p>
+                <p class="text-light text-center py-3">No hay laboratorios registrados.</p>
                 {% endif %}
             </div>
         </div>
@@ -207,7 +208,7 @@
                             </a>
                             <div class="mt-2 small">
                                 <span class="badge bg-danger mb-1">{{ photo.category }}</span>
-                                <div class="text-muted">Fecha: {{ photo.date }}</div>
+                                <div class="text-light">Fecha: {{ photo.date }}</div>
                                 {% if photo.notes %}
                                 <div class="text-white mt-1"><em>{{ photo.notes }}</em></div>
                                 {% endif %}
@@ -217,7 +218,7 @@
                     {% endfor %}
                 </div>
                 {% else %}
-                <p class="text-muted text-center py-3">No hay fotos registradas para este paciente.</p>
+                <p class="text-light text-center py-3">No hay fotos registradas para este paciente.</p>
                 {% endif %}
             </div>
         </div>
