@@ -2,288 +2,115 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>{{ patient.full_name }} - METABOLISYS</title>
+    <title>Detalle del Paciente - METABOLISYS</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { background-color: #121212 !important; color: #e0e0e0 !important; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .card { background-color: #1e1e1e !important; border: 1px solid #333 !important; color: #ffffff !important; }
-        .table { color: #ffffff !important; border-color: #333 !important; font-size: 0.85rem; }
-        .table-dark { background-color: #1a1a1a !important; color: #ffffff !important; }
+        .table { color: #ffffff !important; border-color: #333 !important; }
+        .table-dark { background-color: #1e1e1e !important; color: #ffffff !important; }
         .btn-primary { background-color: #e63946; border: none; }
         .btn-primary:hover { background-color: #d90429; }
-        .nav-pills .nav-link.active { background-color: #e63946; color: #fff; }
-        .nav-pills .nav-link { color: #aaa; background-color: #1e1e1e; border: 1px solid #333; margin-right: 5px; }
-        .text-muted { color: #d1d1d1 !important; }
+        .section-title { color: #ff6b6b; border-bottom: 1px solid #333; padding-bottom: 5px; margin-top: 20px; margin-bottom: 15px; }
     </style>
 </head>
 <body class="py-4">
-<div class="container-fluid px-4">
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+<div class="container" style="max-width: 1100px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary btn-sm">⬅️ Volver al Listado</a>
+        <h2 class="text-danger fw-bold m-0">❤️ METABOLISYS</h2>
         <div>
-            <a href="{{ url_for('index') }}" class="btn btn-outline-light btn-sm mb-2">← Volver al Listado</a>
-            <h2 class="text-danger fw-bold mb-0">{{ patient.full_name }}</h2>
-            <p class="text-muted mb-0">CI: {{ patient.ci }} | Edad: {{ patient.age }} años | Género: {{ patient.gender }} | Sanatorio: {{ patient.sanatorio }}</p>
-        </div>
-        <!-- Botones superiores sin el botón de receta -->
-        <div class="d-flex gap-2 flex-wrap">
-            <a href="{{ url_for('new_record', patient_id=patient.id) }}" class="btn btn-primary btn-sm">➕ Nuevo Control (Peso/Medidas)</a>
-            <a href="{{ url_for('edit_treatment', patient_id=patient.id) }}" class="btn btn-warning btn-sm text-dark fw-bold">📋 Modificar Plan / Tratamiento</a>
-            <a href="{{ url_for('generate_pdf', patient_id=patient.id) }}" class="btn btn-outline-danger btn-sm">📄 Informe PDF</a>
+            <a href="{{ url_for('edit_treatment', patient_id=patient.id) }}" class="btn btn-warning btn-sm fw-bold">✏️ Modificar Plan</a>
+            <a href="{{ url_for('new_record', patient_id=patient.id) }}" class="btn btn-primary btn-sm fw-bold">➕ Nuevo Control</a>
+            <a href="{{ url_for('generate_pdf', patient_id=patient.id) }}" class="btn btn-success btn-sm fw-bold">📄 Informe PDF</a>
         </div>
     </div>
 
-    <ul class="nav nav-pills mb-3" id="patientTab" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="control-tab" data-bs-toggle="pill" data-bs-target="#control" type="button" role="tab">⚖️ Control y Evolución</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="filiacion-tab" data-bs-toggle="pill" data-bs-target="#filiacion" type="button" role="tab">📑 Filiación</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="laboratorios-tab" data-bs-toggle="pill" data-bs-target="#laboratorios" type="button" role="tab">🧪 Laboratorios</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="indicaciones-tab" data-bs-toggle="pill" data-bs-target="#indicaciones" type="button" role="tab">📋 Planes Anteriores</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="comparativa-tab" data-bs-toggle="pill" data-bs-target="#comparativa" type="button" role="tab">🔍 Comparativa Visual</button>
-        </li>
-    </ul>
+    <!-- TARJETA DE FILIACIÓN Y DATOS GENERALES -->
+    <div class="card p-4 shadow-lg rounded-4 mb-4">
+        <h4 class="text-warning mb-3">Filiación y Datos Clínicos: {{ patient.full_name }}</h4>
+        <div class="row g-3">
+            <div class="col-md-3"><strong>Cédula (CI):</strong> {{ patient.ci }}</div>
+            <div class="col-md-3"><strong>Edad:</strong> {{ patient.age }} años</div>
+            <div class="col-md-3"><strong>Género:</strong> {{ patient.gender }}</div>
+            <div class="col-md-3"><strong>Teléfono:</strong> {{ patient.phone or 'N/D' }}</div>
+            <div class="col-md-3"><strong>Sanatorio:</strong> {{ patient.sanatorio }}</div>
+            <div class="col-md-3"><strong>Seguro Médico:</strong> {{ patient.seguro_medico or 'N/D' }}</div>
+            <div class="col-md-3"><strong>Inicio Tratamiento:</strong> {{ patient.fecha_inicio_tratamiento or 'N/D' }}</div>
+            <div class="col-md-3"><strong>Patología Principal:</strong> {{ patient.pathology_type or 'N/D' }}</div>
+        </div>
+    </div>
 
-    <div class="tab-content" id="patientTabContent">
-        
-        <div class="tab-pane fade show active" id="control" role="tabpanel">
-            {% if valid_records %}
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="card p-3 shadow-sm">
-                        <h6 class="text-danger mb-3">📈 Evolución del Peso (kg)</h6>
-                        <canvas id="weightChart" height="120"></canvas>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card p-3 shadow-sm">
-                        <h6 class="text-danger mb-3">📈 Evolución HbA1c (%)</h6>
-                        <canvas id="hba1cChart" height="120"></canvas>
-                    </div>
+    <!-- SECCIÓN DE CALCULADORAS CLÍNICAS AUTOMÁTICAS CON COLORES -->
+    {% if valid_records %}
+    {% set last_r = valid_records[-1] %}
+    <div class="card p-3 mb-4 border-secondary bg-black">
+        <h6 class="text-warning mb-3">🧮 Calculadoras Clínicas Automáticas (Último Control: {{ last_r.date }})</h6>
+        <div class="row g-3">
+            <!-- Tarjeta ICA -->
+            <div class="col-md-6">
+                <div class="p-3 rounded border border-secondary bg-dark">
+                    <span class="text-muted small">ÍNDICE CINTURA-ALTURA (ICA)</span>
+                    <h4 class="fw-bold mb-1">{{ last_r.ica_value or 'N/D' }}</h4>
+                    {% set ica_info = last_r.ica_status %}
+                    <span class="badge bg-{{ ica_info[1] }} px-3 py-2 fs-6">{{ ica_info[0] }}</span>
                 </div>
             </div>
-            {% endif %}
-
-            <div class="card p-3 shadow-sm">
-                <h5 class="text-danger mb-3">📊 Historial de Controles Antropométricos</h5>
-                {% if valid_records %}
-                <div class="table-responsive">
-                    <table class="table table-dark table-striped table-hover align-middle">
-                        <thead>
-                            <tr>
-                                <th>Fecha</th>
-                                <th>Altura</th>
-                                <th>Peso</th>
-                                <th>Peso Perdido</th>
-                                <th>Grasa</th>
-                                <th>Grasa Perdida</th>
-                                <th>Visceral</th>
-                                <th>Músculo</th>
-                                <th>Músculo Δ</th>
-                                <th>IMC</th>
-                                <th>Cintura</th>
-                                <th>Cintura Perdida</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for r in valid_records %}
-                            <tr>
-                                <td>{{ r.date }}</td>
-                                <td>{{ r.height }} cm</td>
-                                <td>{{ r.weight }} kg</td>
-                                <td class="text-success fw-bold">-{{ r.weight_lost or 0 }} kg</td>
-                                <td>{{ r.body_fat_kg }} kg ({{ r.body_fat_pct }}%)</td>
-                                <td class="text-success">-{{ r.fat_lost or 0 }} kg</td>
-                                <td>{{ r.visceral_fat }}</td>
-                                <td>{{ r.muscle_mass_kg }} kg</td>
-                                <td class="text-warning">{{ r.muscle_delta or 0 }} kg</td>
-                                <td>{{ r.bmi }}</td>
-                                <td>{{ r.waist }} cm</td>
-                                <td class="text-success">-{{ r.waist_lost or 0 }} cm</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+            <!-- Tarjeta Riesgo Cardiovascular -->
+            <div class="col-md-6">
+                <div class="p-3 rounded border border-secondary bg-dark">
+                    <span class="text-muted small">ESTIMACIÓN RIESGO CARDIOVASCULAR</span>
+                    <h4 class="fw-bold mb-1">Evaluación Automática</h4>
+                    {% set cardio_info = last_r.cardio_risk_estimate %}
+                    <span class="badge bg-{{ cardio_info[1] }} px-3 py-2 fs-6">{{ cardio_info[0] }}</span>
                 </div>
-                {% else %}
-                <p class="text-muted text-center py-4">Aún no hay controles antropométricos registrados.</p>
-                {% endif %}
             </div>
         </div>
+    </div>
+    {% endif %}
 
-        <div class="tab-pane fade" id="filiacion" role="tabpanel">
-            <div class="card p-4 shadow-sm mb-3">
-                <h5 class="text-danger mb-3">Datos de Filiación y Antecedentes</h5>
-                <div class="row g-3">
-                    <div class="col-md-4"><strong>Procedencia:</strong> {{ patient.procedencia or 'N/D' }}</div>
-                    <div class="col-md-4"><strong>Profesión:</strong> {{ patient.profession or 'N/D' }}</div>
-                    <div class="col-md-4"><strong>Teléfono:</strong> {{ patient.phone or 'N/D' }}</div>
-                    <div class="col-md-4"><strong>Tipo Patología:</strong> {{ patient.pathology_type or 'N/D' }}</div>
-                    <div class="col-md-4"><strong>Años Evolución:</strong> {{ patient.evolution_years or 0 }} años</div>
-                </div>
-                <hr class="border-secondary">
-                <div class="row g-3">
-                    <div class="col-md-4"><strong>Ant. Familiares:</strong><p class="text-white mb-0">{{ patient.antecedentes_familiares or 'Ninguno' }}</p></div>
-                    <div class="col-md-4"><strong>Ant. Personales:</strong><p class="text-white mb-0">{{ patient.antecedentes_personales or 'Ninguno' }}</p></div>
-                    <div class="col-md-4"><strong>Tratamiento Base:</strong><p class="text-white mb-0">{{ patient.tratamiento_base or 'Ninguno' }}</p></div>
-                    <div class="col-md-6"><strong>Cirugías:</strong><p class="text-white mb-0">{{ patient.historial_cirugias or 'Ninguna' }}</p></div>
-                    <div class="col-md-6"><strong>Alergia Fármacos:</strong><p class="text-white mb-0">{{ patient.alergia_farmacos or 'Ninguna' }}</p></div>
-                </div>
-            </div>
-
-            {% if patient.gender == 'Mujer' %}
-            <div class="card p-4 shadow-sm mb-3">
-                <h5 class="text-danger mb-3">Datos Ginecológicos</h5>
-                <div class="row g-3">
-                    <div class="col-md-3"><strong>Hijos:</strong> {{ patient.cant_hijos or 'N/D' }}</div>
-                    <div class="col-md-3"><strong>Menarca:</strong> {{ patient.menarca or 'N/D' }}</div>
-                    <div class="col-md-3"><strong>Menstruación Regular:</strong> {{ patient.menstruacion_regular or 'N/D' }}</div>
-                    <div class="col-md-3"><strong>Anticonceptivos:</strong> {{ patient.anticonceptivos or 'N/D' }}</div>
-                </div>
-            </div>
-            {% endif %}
-
-            <div class="card p-4 shadow-sm mb-3">
-                <h5 class="text-danger mb-3">Estilo de Vida y Checklist GLP-1</h5>
-                <div class="row g-3 mb-3">
-                    <div class="col-md-4"><strong>Sueño:</strong> {{ patient.calidad_sueno or 'N/D' }}</div>
-                    <div class="col-md-4"><strong>Actividad Física:</strong> {{ patient.actividad_fisica or 'N/D' }}</div>
-                    <div class="col-md-4"><strong>Fuma / Alcohol:</strong> {{ patient.fuma_alcohol or 'N/D' }}</div>
-                    <div class="col-md-6"><strong>Comidas al día:</strong> {{ patient.veces_come or 'N/D' }}</div>
-                    <div class="col-md-6"><strong>Gaseosa / Jugo:</strong> {{ patient.consume_gaseosa_jugo or 'N/D' }}</div>
-                </div>
-                {% if patient.checklist_glp1_notas %}
-                <hr class="border-secondary">
-                <strong>Checklist GLP-1 / Notas de Seguridad:</strong>
-                <p class="text-warning mb-0 mt-1">{{ patient.checklist_glp1_notas }}</p>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="tab-pane fade" id="laboratorios" role="tabpanel">
-            <div class="card p-3 shadow-sm">
-                <h5 class="text-danger mb-3">🧪 Historial de Laboratorios</h5>
-                {% if valid_records %}
-                <div class="table-responsive">
-                    <table class="table table-dark table-striped table-hover align-middle">
-                        <thead>
-                            <tr>
-                                <th>Fecha</th>
-                                <th>Glicemia</th>
-                                <th>HbA1c</th>
-                                <th>Triglicéridos</th>
-                                <th>Col. Tot / HDL / LDL</th>
-                                <th>Creatinina / Urea</th>
-                                <th>TSH / T4</th>
-                                <th>Vit D / B12</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for r in valid_records %}
-                            <tr>
-                                <td>{{ r.date }}</td>
-                                <td>{{ r.glucose or '-' }}</td>
-                                <td>{{ r.hba1c or '-' }}%</td>
-                                <td>{{ r.triglycerides or '-' }}</td>
-                                <td>{{ r.cholesterol_tot or '-' }} / {{ r.hdl or '-' }} / {{ r.ldl or '-' }}</td>
-                                <td>{{ r.creatinine or '-' }} / {{ r.urea or '-' }}</td>
-                                <td>{{ r.tsh or '-' }} / {{ r.t4 or '-' }}</td>
-                                <td>{{ r.vit_d or '-' }} / {{ r.vit_b12 or '-' }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <p class="text-muted text-center py-4">Aún no hay laboratorios registrados.</p>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="tab-pane fade" id="indicaciones" role="tabpanel">
-            <div class="card p-3 shadow-sm">
-                <h5 class="text-danger mb-3">📋 Historial de Planes y Tratamientos</h5>
-                {% if patient.records %}
-                    {% for r in patient.records %}
-                    <div class="border border-secondary rounded p-3 mb-3 bg-black">
-                        <h6 class="text-warning">Control del: {{ r.date }}</h6>
-                        <hr class="border-secondary my-2">
-                        <p class="mb-1"><strong>Indicaciones / Tratamiento:</strong> {{ r.indicaciones_tratamiento or 'Ninguna' }}</p>
-                        <p class="mb-1"><strong>Medicación (Receta):</strong> {{ r.medications or 'Ninguna' }}</p>
-                        <p class="mb-1"><strong>Próximo Control:</strong> {{ r.proximo_control or 'No especificado' }}</p>
-                        <p class="mb-0"><strong>Conducta Médica:</strong> {{ r.conducta_medica or 'Ninguna' }}</p>
-                    </div>
+    <!-- HISTORIAL DE CONTROLES -->
+    <div class="card p-4 shadow-lg rounded-4">
+        <h5 class="section-title">Historial de Controles Antropométricos y Clínicos</h5>
+        {% if valid_records %}
+        <div class="table-responsive">
+            <table class="table table-dark table-striped table-hover align-middle text-center small">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Balanza</th>
+                        <th>PA / FC</th>
+                        <th>Peso (kg)</th>
+                        <th>IMC</th>
+                        <th>Cintura (cm)</th>
+                        <th>Grasa (%)</th>
+                        <th>Músculo (kg)</th>
+                        <th>Glicemia</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in valid_records %}
+                    <tr>
+                        <td>{{ r.date }}</td>
+                        <td>{{ r.marca_balanza or '-' }}</td>
+                        <td>{{ r.pa or '-' }} / {{ r.fc or '-' }}</td>
+                        <td>{{ r.weight or '-' }}</td>
+                        <td>{{ r.bmi }}</td>
+                        <td>{{ r.waist or '-' }}</td>
+                        <td>{{ r.body_fat_pct or '-' }}</td>
+                        <td>{{ r.muscle_mass_kg or '-' }}</td>
+                        <td>{{ r.glucose or '-' }}</td>
+                    </tr>
                     {% endfor %}
-                {% else %}
-                <p class="text-muted text-center py-4">Aún no hay planes registrados.</p>
-                {% endif %}
-            </div>
+                </tbody>
+            </table>
         </div>
-
-        <div class="tab-pane fade" id="comparativa" role="tabpanel">
-            <div class="card p-4 shadow-sm">
-                <h5 class="text-danger mb-4">🔍 Comparativa de Evolución (Antes vs. Actual)</h5>
-                
-                {% if patient.photos | length >= 2 %}
-                <div class="row text-center">
-                    <div class="col-md-6 border-end border-secondary">
-                        <h6 class="text-warning">Foto Inicial (Baseline)</h6>
-                        <img src="{{ url_for('static', filename='uploads/' + patient.photos[0].filename) }}" class="img-fluid rounded mb-2 shadow" style="max-height: 350px; object-fit: cover;">
-                        <p class="small text-muted">Fecha: {{ patient.photos[0].date }} | {{ patient.photos[0].category }}</p>
-                        <p class="small text-white">{{ patient.photos[0].notes or '' }}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="text-success">Foto Más Reciente (Actual)</h6>
-                        <img src="{{ url_for('static', filename='uploads/' + patient.photos[-1].filename) }}" class="img-fluid rounded mb-2 shadow" style="max-height: 350px; object-fit: cover;">
-                        <p class="small text-muted">Fecha: {{ patient.photos[-1].date }} | {{ patient.photos[-1].category }}</p>
-                        <p class="small text-white">{{ patient.photos[-1].notes or '' }}</p>
-                    </div>
-                </div>
-                {% elif patient.photos | length == 1 %}
-                <div class="text-center py-4">
-                    <p class="text-muted">Solo hay 1 foto registrada. Sube una segunda foto en un control posterior para ver la comparativa lado a lado.</p>
-                    <img src="{{ url_for('static', filename='uploads/' + patient.photos[0].filename) }}" class="img-fluid rounded shadow" style="max-height: 300px;">
-                </div>
-                {% else %}
-                <p class="text-muted text-center py-4">Aún no hay fotos cargadas en los controles de este paciente.</p>
-                {% endif %}
-            </div>
-        </div>
-
+        {% else %}
+        <p class="text-muted text-center py-3">No hay registros de control cargados todavía.</p>
+        {% endif %}
     </div>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-{% if valid_records %}
-<script>
-    const dates = {{ dates | tojson }};
-    const weightData = {{ weight_data | tojson }};
-    const hba1cData = {{ hba1c_data | tojson }};
-
-    if(weightData.length > 0) {
-        new Chart(document.getElementById('weightChart'), {
-            type: 'line',
-            data: { labels: dates, datasets: [{ label: 'Peso (kg)', data: weightData, borderColor: '#e63946', tension: 0.1 }] },
-            options: { responsive: true, plugins: { legend: { labels: { color: '#fff' } } }, scales: { x: { ticks: { color: '#aaa' } }, y: { ticks: { color: '#aaa' } } } }
-        });
-    }
-
-    if(hba1cData.length > 0) {
-        new Chart(document.getElementById('hba1cChart'), {
-            type: 'line',
-            data: { labels: dates, datasets: [{ label: 'HbA1c (%)', data: hba1cData, borderColor: '#3a86ff', tension: 0.1 }] },
-            options: { responsive: true, plugins: { legend: { labels: { color: '#fff' } } }, scales: { x: { ticks: { color: '#aaa' } }, y: { ticks: { color: '#aaa' } } } }
-        });
-    }
-</script>
-{% endif %}
 </body>
 </html>
