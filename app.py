@@ -216,12 +216,20 @@ Patient.photos = db.relationship('PatientPhoto', backref='patient', lazy=True, c
 
 with app.app_context():
     db.create_all()
+    # Mantenemos a admin pero creamos a la doctora
     admin_user = User.query.filter_by(username='admin').first()
     if not admin_user:
         hashed_pw = generate_password_hash('123', method='pbkdf2:sha256')
         admin = User(username='admin', password_hash=hashed_pw)
         db.session.add(admin)
-        db.session.commit()
+        
+    doc_user = User.query.filter_by(username='drasofiamartinez').first()
+    if not doc_user:
+        hashed_pw = generate_password_hash('metabopy', method='pbkdf2:sha256')
+        doc = User(username='drasofiamartinez', password_hash=hashed_pw)
+        db.session.add(doc)
+    
+    db.session.commit()
 
 def login_required(f):
     @wraps(f)
@@ -238,12 +246,14 @@ def login():
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
         
-        if username == 'admin' and password == '123':
-            session['user_id'] = 1
-            session['username'] = 'admin'
+        user = User.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password_hash, password):
+            session['user_id'] = user.id
+            session['username'] = "Dra. Sofía" if username == 'drasofiamartinez' else username
             return redirect(url_for('index'))
         else:
-            error = 'Usuario o contraseña incorrectos. Usa: admin / 123'
+            error = 'Usuario o contraseña incorrectos.'
+            
     return render_template('login.html', error=error)
 
 @app.route('/logout')
