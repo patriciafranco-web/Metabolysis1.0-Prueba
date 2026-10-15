@@ -10,7 +10,13 @@
 <body class="bg-light">
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
         <div class="container">
-            <a class="navbar-brand" href="/"><i class="bi bi-heart-pulse-fill text-danger"></i> Metabolisys <small class="text-muted fs-6">| Diabetología y Metabolismo</small></a>
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <i class="bi bi-heart-pulse-fill text-danger fs-4 me-2"></i>
+                <div>
+                    <span class="fw-bold">Metabolisys</span>
+                    <div class="text-warning small" style="font-size: 0.75rem; line-height: 1;">Dra. Sofía Fernández | Endocrinología y Metabolismo</div>
+                </div>
+            </a>
             {% if session.get('user_id') %}
             <div class="d-flex align-items-center">
                 <span class="text-light me-3 small"><i class="bi bi-person-circle"></i> {{ session.get('username') }}</span>
