@@ -97,10 +97,20 @@ class MedicalRecord(db.Model):
     basal_metabolism = db.Column(db.Float)
     waist = db.Column(db.Float)
     
+    # Biomarcadores avanzados detallados de Renpho
+    masa_grasa_kg = db.Column(db.Float)
+    porcentaje_musculo = db.Column(db.Float)
+    porcentaje_musculo_esqueletico = db.Column(db.Float)
+    masa_muscular_esqueletica = db.Column(db.Float)
+    porcentaje_oseo = db.Column(db.Float)
     masa_osea = db.Column(db.Float)
-    agua_corporal_pct = db.Column(db.Float)
+    porcentaje_proteina = db.Column(db.Float)
+    masa_proteica = db.Column(db.Float)
+    porcentaje_agua_corporal = db.Column(db.Float)
+    masa_agua_corporal = db.Column(db.Float)
+    peso_sin_grasa = db.Column(db.Float)
     grasa_subcutanea_pct = db.Column(db.Float)
-    proteina_pct = db.Column(db.Float)
+    edad_metabolica = db.Column(db.Integer)
     
     weight_lost = db.Column(db.Float, default=0.0)
     fat_lost = db.Column(db.Float, default=0.0)
@@ -303,8 +313,8 @@ def new_record(patient_id):
         first_record = valid_records[0] if valid_records else None
         
         w_curr = float(request.form.get('weight') or 0)
-        f_curr = float(request.form.get('body_fat_kg') or 0)
-        m_curr = float(request.form.get('muscle_mass_kg') or 0)
+        f_curr = float(request.form.get('body_fat_kg') or float(request.form.get('masa_grasa_kg') or 0))
+        m_curr = float(request.form.get('muscle_mass_kg') or float(request.form.get('masa_muscular_esqueletica') or 0))
         wst_curr = float(request.form.get('waist') or 0)
         
         w_init = first_record.weight if first_record and first_record.weight else w_curr
@@ -321,17 +331,27 @@ def new_record(patient_id):
             height=float(request.form.get('height') or 0),
             weight=w_curr,
             body_fat_kg=f_curr,
-            body_fat_pct=float(request.form.get('body_fat_pct') or 0),
-            visceral_fat=float(request.form.get('visceral_fat') or 0),
+            body_fat_pct=float(request.form.get('body_fat_pct') or float(request.form.get('porcentaje_grasa_corporal') or 0)),
+            visceral_fat=float(request.form.get('visceral_fat') or float(request.form.get('grasa_visceral') or 0)),
             muscle_mass_kg=m_curr,
-            muscle_mass_pct=float(request.form.get('muscle_mass_pct') or 0),
-            basal_metabolism=float(request.form.get('basal_metabolism') or 0),
+            muscle_mass_pct=float(request.form.get('muscle_mass_pct') or float(request.form.get('porcentaje_musculo_esqueletico') or 0)),
+            basal_metabolism=float(request.form.get('basal_metabolism') or float(request.form.get('tasa_metabolica_basal') or 0)),
             waist=wst_curr,
             
+            # Captura de campos específicos Renpho
+            masa_grasa_kg=float(request.form.get('masa_grasa_kg') or 0),
+            porcentaje_musculo=float(request.form.get('porcentaje_musculo') or 0),
+            porcentaje_musculo_esqueletico=float(request.form.get('porcentaje_musculo_esqueletico') or 0),
+            masa_muscular_esqueletica=float(request.form.get('masa_muscular_esqueletica') or 0),
+            porcentaje_oseo=float(request.form.get('porcentaje_oseo') or 0),
             masa_osea=float(request.form.get('masa_osea') or 0),
-            agua_corporal_pct=float(request.form.get('agua_corporal_pct') or 0),
+            porcentaje_proteina=float(request.form.get('porcentaje_proteina') or 0),
+            masa_proteica=float(request.form.get('masa_proteica') or 0),
+            porcentaje_agua_corporal=float(request.form.get('porcentaje_agua_corporal') or 0),
+            masa_agua_corporal=float(request.form.get('masa_agua_corporal') or 0),
+            peso_sin_grasa=float(request.form.get('peso_sin_grasa') or 0),
             grasa_subcutanea_pct=float(request.form.get('grasa_subcutanea_pct') or 0),
-            proteina_pct=float(request.form.get('proteina_pct') or 0),
+            edad_metabolica=int(request.form.get('edad_metabolica') or 0),
             
             weight_lost=round(w_init - w_curr, 2) if first_record else 0.0,
             fat_lost=round(f_init - f_curr, 2) if first_record else 0.0,
@@ -448,7 +468,7 @@ def export_excel():
         'ID', 'Nombre', 'CI', 'Edad', 'Género', 'Teléfono', 'Sanatorio', 'Procedencia', 'Profesión', 'Patología', 
         'Seguro Médico', 'Inicio Tratamiento', 'Años Evolución', 'Antecedentes Familiares', 'Antecedentes Personales', 'Comorbilidades', 'Tratamiento Base',
         'Fecha Control', 'Balanza', 'PA', 'FC', 'Altura (cm)', 'Peso (kg)', 'Peso Perdido (kg)', 'IMC', 'Grasa Corp (kg)', 'Grasa Perdida (kg)', 'Grasa Corp (%)', 'Grasa Visceral', 
-        'Músculo (kg)', 'Músculo Delta (kg)', 'Músculo (%)', 'Metabolismo Basal', 'Masa Ósea', 'Agua Corporal (%)', 'Grasa Subcutánea (%)', 'Proteína (%)', 'Cintura (cm)', 'Cintura Perdida (cm)', 'Glicemia', 'Insulina', 'HbA1c (%)', 
+        'Músculo (kg)', 'Músculo Delta (kg)', 'Músculo (%)', 'Metabolismo Basal', 'Masa Grasa (kg)', '% Músculo', '% Músculo Esquelético', 'Masa Músculo Esquelético (kg)', '% Óseo', 'Masa Ósea (kg)', '% Proteína', 'Masa Proteica (kg)', '% Agua Corporal', 'Masa Agua Corporal (kg)', 'Peso Sin Grasa (kg)', 'Grasa Subcutánea (%)', 'Edad Metabólica', 'Cintura (cm)', 'Cintura Perdida (cm)', 'Glicemia', 'Insulina', 'HbA1c (%)', 
         'Triglicéridos', 'Col. Tot', 'HDL', 'LDL', 'VLDL', 'Ácido Úrico', 'GOT', 'GPT', 'FA', 'Bili Tot', 'Bili Dir', 
         'Bili Ind', 'Urea', 'Creatinina', 'TSH', 'T4', 'T3', 'Anti-TPO', 'Vit D', 'Vit B12', 'Calcio', 'Magnesio', 
         'Fósforo', 'Cloro', 'Eco Abdominal', 'Eco Tiroidea', 'Otros Estudios', 'Indicaciones / Tratamiento', 'Medicación', 
@@ -463,14 +483,14 @@ def export_excel():
                     p.id, p.full_name, p.ci, p.age, p.gender, p.phone, p.sanatorio, p.procedencia, p.profession, p.pathology_type,
                     p.seguro_medico, p.fecha_inicio_tratamiento, p.evolution_years, p.antecedentes_familiares, p.antecedentes_personales, p.comorbidities, p.tratamiento_base,
                     r.date, r.marca_balanza, r.pa, r.fc, r.height, r.weight, r.weight_lost, r.bmi, r.body_fat_kg, r.fat_lost, r.body_fat_pct, r.visceral_fat, r.muscle_mass_kg, r.muscle_delta, r.muscle_mass_pct,
-                    r.basal_metabolism, r.masa_osea, r.agua_corporal_pct, r.grasa_subcutanea_pct, r.proteina_pct, r.waist, r.waist_lost, r.glucose, r.insulin, r.hba1c, r.triglycerides, r.cholesterol_tot, r.hdl, r.ldl,
+                    r.basal_metabolism, r.masa_grasa_kg, r.porcentaje_musculo, r.porcentaje_musculo_esqueletico, r.masa_muscular_esqueletica, r.porcentaje_oseo, r.masa_osea, r.porcentaje_proteina, r.masa_proteica, r.porcentaje_agua_corporal, r.masa_agua_corporal, r.peso_sin_grasa, r.grasa_subcutanea_pct, r.edad_metabolica, r.waist, r.waist_lost, r.glucose, r.insulin, r.hba1c, r.triglycerides, r.cholesterol_tot, r.hdl, r.ldl,
                     r.vldl, r.uric_acid, r.got, r.gpt, r.fa, r.bili_tot, r.bili_dir, r.bili_ind, r.urea, r.creatinine,
                     r.tsh, r.t4, r.t3, r.anti_tpo, r.vit_d, r.vit_b12, r.calcium, r.magnesium, r.phosphorus, r.chlorine,
                     r.ecografia_abdominal, r.ecografia_tiroidea, r.otros_estudios, r.indicaciones_tratamiento, r.medications,
                     r.proximo_control, r.homair, r.waist_height_ratio, r.conducta_medica
                 ])
         else:
-            writer.writerow([p.id, p.full_name, p.ci, p.age, p.gender, p.phone, p.sanatorio, p.procedencia, p.profession, p.pathology_type, p.seguro_medico, p.fecha_inicio_tratamiento, p.evolution_years, p.antecedentes_familiares, p.antecedentes_personales, p.comorbidities, p.tratamiento_base, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''])
+            writer.writerow([p.id, p.full_name, p.ci, p.age, p.gender, p.phone, p.sanatorio, p.procedencia, p.profession, p.pathology_type, p.seguro_medico, p.fecha_inicio_tratamiento, p.evolution_years, p.antecedentes_familiares, p.antecedentes_personales, p.comorbidities, p.tratamiento_base, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''])
     output.seek(0)
     return Response(
         output.getvalue(),
