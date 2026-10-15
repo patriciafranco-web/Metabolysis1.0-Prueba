@@ -14,16 +14,23 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///metabolisys_pro.db'
+
+# --- CONFIGURACIÓN DE DISCO SEGURO PARA RENDER ---
+# Si el disco seguro de Render existe, úsalo. Si no, usa la carpeta local.
+DATA_DIR = '/var/data' if os.path.exists('/var/data') else '.'
+
+# La base de datos y fotos ahora se guardan en el disco seguro
+app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(DATA_DIR, 'metabolisys_pro.db')}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'metabolisys_secreto_seguro_2026'
 
-UPLOAD_FOLDER = 'static/uploads'
+UPLOAD_FOLDER = os.path.join(DATA_DIR, 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
+# -------------------------------------------------
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -223,7 +230,7 @@ with app.app_context():
         admin = User(username='admin', password_hash=hashed_pw)
         db.session.add(admin)
         
-    # NUEVO USUARIO CORRECTO: drasofiafernandez
+    # Usuario correcto para la Dra. Fernández
     doc_user = User.query.filter_by(username='drasofiafernandez').first()
     if not doc_user:
         hashed_pw = generate_password_hash('metabopy', method='pbkdf2:sha256')
@@ -250,7 +257,6 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password_hash, password):
             session['user_id'] = user.id
-            # Reconoce el nuevo usuario
             session['username'] = "Dra. Sofía" if username == 'drasofiafernandez' else username
             return redirect(url_for('index'))
         else:
@@ -561,7 +567,10 @@ def generate_pdf(patient_id):
     cell_style = ParagraphStyle('CellStyle', fontName='Helvetica', fontSize=8, alignment=1)
     
     # 1. Logo más grande
-    logo_path = os.path.join('static', 'logo.png')
+    logo_path = os.path.join(app.config['UPLOAD_FOLDER'].replace('/var/data/uploads', 'static'), 'logo.png')
+    if not os.path.exists(logo_path):
+        logo_path = os.path.join('static', 'logo.png')
+        
     if os.path.exists(logo_path):
         story.append(RLImage(logo_path, width=220, height=80))
         story.append(Spacer(1, 5))
