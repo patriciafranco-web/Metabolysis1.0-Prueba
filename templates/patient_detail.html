@@ -133,11 +133,18 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% set first_r = valid_records[0] %}
+                            <!-- LÓGICA INTELIGENTE DE BÚSQUEDA DE DATOS INICIALES -->
+                            {% set ns = namespace(first_w=0, first_wst=0, first_m=0) %}
                             {% for r in valid_records %}
-                                {% set w_diff = (r.weight - first_r.weight) | round(2) if r.weight and first_r.weight else 0 %}
-                                {% set wst_diff = (r.waist - first_r.waist) | round(1) if r.waist and first_r.waist else 0 %}
-                                {% set m_diff = (r.muscle_mass_kg - first_r.muscle_mass_kg) | round(2) if r.muscle_mass_kg and first_r.muscle_mass_kg else 0 %}
+                                {% if ns.first_w == 0 and r.weight %}{% set ns.first_w = r.weight %}{% endif %}
+                                {% if ns.first_wst == 0 and r.waist %}{% set ns.first_wst = r.waist %}{% endif %}
+                                {% if ns.first_m == 0 and r.muscle_mass_kg %}{% set ns.first_m = r.muscle_mass_kg %}{% endif %}
+                            {% endfor %}
+
+                            {% for r in valid_records %}
+                                {% set w_diff = (r.weight - ns.first_w) | round(2) if r.weight and ns.first_w else 0 %}
+                                {% set wst_diff = (r.waist - ns.first_wst) | round(1) if r.waist and ns.first_wst else 0 %}
+                                {% set m_diff = (r.muscle_mass_kg - ns.first_m) | round(2) if r.muscle_mass_kg and ns.first_m else 0 %}
                             <tr>
                                 <td>{{ r.date }}</td>
                                 <td>{{ r.marca_balanza or '-' }}</td>
