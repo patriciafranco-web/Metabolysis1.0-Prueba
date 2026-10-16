@@ -221,11 +221,11 @@ def recalculate_deltas(patient_id):
     valid_records = sorted([r for r in patient.records if r.weight is not None and r.weight > 0], key=lambda x: x.date)
     if not valid_records: return
     
-    first_r = valid_records[0]
-    w_init = first_r.weight or 0
-    f_init = first_r.body_fat_kg or 0
-    m_init = first_r.muscle_mass_kg or 0
-    wst_init = first_r.waist or 0
+    # Busca dinámicamente el primer dato válido de cada métrica
+    w_init = next((r.weight for r in valid_records if r.weight), 0)
+    f_init = next((r.body_fat_kg for r in valid_records if r.body_fat_kg), 0)
+    m_init = next((r.muscle_mass_kg for r in valid_records if r.muscle_mass_kg), 0)
+    wst_init = next((r.waist for r in valid_records if r.waist), 0)
     
     for r in valid_records:
         r.weight_lost = round(w_init - (r.weight or 0), 2)
@@ -559,7 +559,6 @@ def delete_record(id):
     recalculate_deltas(patient_id)
     return redirect(url_for('patient_detail', id=patient_id))
 
-# --- RUTA DEL PLAN MÉDICO (LA QUE FALTABA) ---
 @app.route('/treatment/edit/<int:patient_id>', methods=['GET', 'POST'])
 @login_required
 def edit_treatment(patient_id):
@@ -599,7 +598,6 @@ def edit_treatment(patient_id):
         return redirect(url_for('patient_detail', id=patient.id))
         
     return render_template('edit_treatment.html', patient=patient, record=last_record)
-# ---------------------------------------------
 
 @app.route('/export/excel')
 @login_required
@@ -684,13 +682,20 @@ def generate_pdf(patient_id):
         story.append(t)
         story.append(Spacer(1, 10))
         
-        first_r = valid_records[0]
-        w_init, w_last = float(first_r.weight or 0), float(last_r.weight or 0)
-        f_init, f_last = float(first_r.body_fat_kg or 0), float(last_r.body_fat_kg or 0)
-        m_init, m_last = float(first_r.muscle_mass_kg or 0), float(last_r.muscle_mass_kg or 0)
-        c_init, c_last = float(first_r.waist or 0), float(last_r.waist or 0)
+        # Búsqueda inteligente para el PDF
+        w_init = next((float(r.weight) for r in valid_records if r.weight), 0)
+        w_last = float(last_r.weight or 0)
+        f_init = next((float(r.body_fat_kg) for r in valid_records if r.body_fat_kg), 0)
+        f_last = float(last_r.body_fat_kg or 0)
+        m_init = next((float(r.muscle_mass_kg) for r in valid_records if r.muscle_mass_kg), 0)
+        m_last = float(last_r.muscle_mass_kg or 0)
+        c_init = next((float(r.waist) for r in valid_records if r.waist), 0)
+        c_last = float(last_r.waist or 0)
         
-        w_diff, f_diff, m_diff, c_diff = round(w_init - w_last, 2), round(f_init - f_last, 2), round(m_last - m_init, 2), round(c_init - c_last, 2)
+        w_diff = round(w_init - w_last, 2)
+        f_diff = round(f_init - f_last, 2)
+        m_diff = round(m_last - m_init, 2)
+        c_diff = round(c_init - c_last, 2)
         
         story.append(Paragraph("RESUMEN DESDE INICIO AL ÚLTIMO CONTROL", section_style))
         
