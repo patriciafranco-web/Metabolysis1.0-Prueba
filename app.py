@@ -6,7 +6,6 @@ from functools import wraps
 import io
 import csv
 import os
-import openpyxl
 from datetime import date
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
@@ -16,10 +15,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 app = Flask(__name__)
 
 # --- CONFIGURACIÓN DE DISCO SEGURO PARA RENDER ---
-# Si el disco seguro de Render existe, úsalo. Si no, usa la carpeta local.
 DATA_DIR = '/var/data' if os.path.exists('/var/data') else '.'
 
-# La base de datos y fotos ahora se guardan en el disco seguro
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(DATA_DIR, 'metabolisys_pro.db')}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'metabolisys_secreto_seguro_2026'
@@ -178,35 +175,31 @@ class MedicalRecord(db.Model):
     @property
     def ica_status(self):
         val = self.ica_value
-        if not val:
-            return ("Sin datos", "secondary")
-        if val < 0.5:
-            return ("Saludable (Riesgo Bajo)", "success")
-        elif 0.5 <= val <= 0.6:
-            return ("Sobrepeso Abdominal (Moderado)", "warning")
-        else:
-            return ("Obesidad Central (Alto Riesgo)", "danger")
+        if not val: return ("Sin datos", "secondary")
+        if val < 0.5: return ("Saludable (Riesgo Bajo)", "success")
+        elif 0.5 <= val <= 0.6: return ("Sobrepeso Abdominal (Moderado)", "warning")
+        else: return ("Obesidad Central (Alto Riesgo)", "danger")
 
     @property
     def cardio_risk_estimate(self):
         score = 0
         if self.cholesterol_tot and self.cholesterol_tot > 240: score += 2
         elif self.cholesterol_tot and self.cholesterol_tot > 200: score += 1
-        
         if self.pa:
             try:
                 sys_bp = int(self.pa.split('/')[0])
                 if sys_bp >= 140: score += 2
                 elif sys_bp >= 130: score += 1
-            except:
-                pass
-                
-        if score >= 3:
-            return ("Riesgo Cardiovascular Alto", "danger")
-        elif score == 2:
-            return ("Riesgo Cardiovascular Moderado", "warning")
-        else:
-            return ("Riesgo Cardiovascular Bajo / Estable", "success")
+            except: pass
+        if score >= 3: return ("Riesgo Cardiovascular Alto", "danger")
+        elif score == 2: return ("Riesgo Cardiovascular Moderado", "warning")
+        else: return ("Riesgo Cardiovascular Bajo / Estable", "success")
+        
+    @property
+    def homair(self):
+        if self.insulin and self.glucose and self.insulin > 0 and self.glucose > 0:
+            return round((self.insulin * self.glucose) / 405, 2)
+        return None
 
 class PatientPhoto(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -216,21 +209,44 @@ class PatientPhoto(db.Model):
     category = db.Column(db.String(50), nullable=False)
     date = db.Column(db.String(20), nullable=False)
     notes = db.Column(db.Text)
-    
     record = db.relationship('MedicalRecord', backref='photos', lazy=True)
 
 Patient.photos = db.relationship('PatientPhoto', backref='patient', lazy=True, cascade="all, delete-orphan")
 
+# --- FUNCIÓN INTELIGENTE PARA ORDENAR CRONOLÓGICAMENTE Y CALCULAR DELTAS ---
+def recalculate_deltas(patient_id):
+    patient = Patient.query.get(patient_id)
+    if not patient: return
+    
+    # 1. Obtenemos los controles válidos y los ORDENAMOS por fecha (cronológicamente)
+    valid_records = sorted([r for r in patient.records if r.weight is not None and r.weight > 0], key=lambda x: x.date)
+    if not valid_records: return
+    
+    # 2. El registro más antiguo será siempre la base de cálculo
+    first_r = valid_records[0]
+    w_init = first_r.weight or 0
+    f_init = first_r.body_fat_kg or 0
+    m_init = first_r.muscle_mass_kg or 0
+    wst_init = first_r.waist or 0
+    
+    # 3. Recalculamos todas las diferencias para todo el historial
+    for r in valid_records:
+        r.weight_lost = round(w_init - (r.weight or 0), 2)
+        r.fat_lost = round(f_init - (r.body_fat_kg or 0), 2)
+        r.muscle_delta = round((r.muscle_mass_kg or 0) - m_init, 2)
+        r.waist_lost = round(wst_init - (r.waist or 0), 2)
+        
+    db.session.commit()
+# ---------------------------------------------------------------------------
+
 with app.app_context():
     db.create_all()
-    # Mantenemos a admin
     admin_user = User.query.filter_by(username='admin').first()
     if not admin_user:
         hashed_pw = generate_password_hash('123', method='pbkdf2:sha256')
         admin = User(username='admin', password_hash=hashed_pw)
         db.session.add(admin)
         
-    # Usuario correcto para la Dra. Fernández
     doc_user = User.query.filter_by(username='drasofiafernandez').first()
     if not doc_user:
         hashed_pw = generate_password_hash('metabopy', method='pbkdf2:sha256')
@@ -253,7 +269,6 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
-        
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password_hash, password):
             session['user_id'] = user.id
@@ -261,7 +276,6 @@ def login():
             return redirect(url_for('index'))
         else:
             error = 'Usuario o contraseña incorrectos.'
-            
     return render_template('login.html', error=error)
 
 @app.route('/logout')
@@ -274,20 +288,12 @@ def logout():
 def index():
     search_query = request.args.get('q', '').strip()
     sanatorio_filter = request.args.get('sanatorio', '').strip()
-    
     query = Patient.query
-    if sanatorio_filter:
-        query = query.filter_by(sanatorio=sanatorio_filter)
+    if sanatorio_filter: query = query.filter_by(sanatorio=sanatorio_filter)
     if search_query:
-        query = query.filter(
-            (Patient.full_name.ilike(f'%{search_query}%')) | 
-            (Patient.ci.ilike(f'%{search_query}%'))
-        )
-        
+        query = query.filter((Patient.full_name.ilike(f'%{search_query}%')) | (Patient.ci.ilike(f'%{search_query}%')))
     patients = query.all()
-    sanatorios = db.session.query(Patient.sanatorio).distinct().all()
-    sanatorios = [s[0] for s in sanatorios if s[0]]
-
+    sanatorios = [s[0] for s in db.session.query(Patient.sanatorio).distinct().all() if s[0]]
     return render_template('index.html', patients=patients, sanatorios=sanatorios, current_sanatorio=sanatorio_filter, search_query=search_query)
 
 @app.route('/patient/new', methods=['GET', 'POST'])
@@ -330,42 +336,70 @@ def new_patient():
         return redirect(url_for('index'))
     return render_template('new_patient.html')
 
+# --- NUEVO: EDITAR PACIENTE ---
+@app.route('/patient/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_patient(id):
+    patient = Patient.query.get_or_404(id)
+    if request.method == 'POST':
+        patient.full_name = format_text(request.form['full_name'])
+        patient.ci = request.form['ci'].strip()
+        patient.birth_date = request.form.get('birth_date')
+        patient.age = int(request.form['age'] or 0)
+        patient.gender = request.form['gender']
+        patient.phone = request.form.get('phone')
+        patient.sanatorio = format_text(request.form['sanatorio'])
+        patient.procedencia = format_text(request.form.get('procedencia'))
+        patient.profession = format_text(request.form.get('profession'))
+        patient.pathology_type = format_text(request.form.get('pathology_type'))
+        patient.evolution_years = int(request.form.get('evolution_years') or 0)
+        patient.seguro_medico = format_text(request.form.get('seguro_medico'))
+        patient.fecha_inicio_tratamiento = format_text(request.form.get('fecha_inicio_tratamiento'))
+        patient.antecedentes_familiares = format_text(request.form.get('antecedentes_familiares'))
+        patient.antecedentes_personales = format_text(request.form.get('antecedentes_personales'))
+        patient.comorbidities = format_text(request.form.get('comorbidities'))
+        patient.tratamiento_base = format_text(request.form.get('tratamiento_base'))
+        patient.historial_cirugias = format_text(request.form.get('historial_cirugias'))
+        patient.alergia_farmacos = format_text(request.form.get('alergia_farmacos'))
+        patient.cant_hijos = request.form.get('cant_hijos')
+        patient.menarca = format_text(request.form.get('menarca'))
+        patient.menstruacion_regular = format_text(request.form.get('menstruacion_regular'))
+        patient.anticonceptivos = format_text(request.form.get('anticonceptivos'))
+        patient.checklist_glp1_notas = format_text(request.form.get('checklist_glp1_notas'))
+        patient.calidad_sueno = format_text(request.form.get('calidad_sueno'))
+        patient.actividad_fisica = format_text(request.form.get('actividad_fisica'))
+        patient.fuma_alcohol = format_text(request.form.get('fuma_alcohol'))
+        patient.veces_come = format_text(request.form.get('veces_come'))
+        patient.consume_gaseosa_jugo = format_text(request.form.get('consume_gaseosa_jugo'))
+        db.session.commit()
+        return redirect(url_for('patient_detail', id=patient.id))
+    return render_template('edit_patient.html', patient=patient)
+
+# --- NUEVO: ELIMINAR PACIENTE ---
+@app.route('/patient/delete/<int:id>', methods=['POST'])
+@login_required
+def delete_patient(id):
+    patient = Patient.query.get_or_404(id)
+    db.session.delete(patient)
+    db.session.commit()
+    return redirect(url_for('index'))
+
 @app.route('/patient/<int:id>')
 @login_required
 def patient_detail(id):
     patient = Patient.query.get_or_404(id)
-    valid_records = [r for r in patient.records if r.weight is not None and r.weight > 0]
+    # Ordenamos visualmente el historial por fecha
+    valid_records = sorted([r for r in patient.records if r.weight is not None and r.weight > 0], key=lambda x: x.date)
     dates = [r.date for r in valid_records]
     hba1c_data = [r.hba1c for r in valid_records if r.hba1c]
     weight_data = [r.weight for r in valid_records if r.weight]
-
-    return render_template(
-        'patient_detail.html', 
-        patient=patient, 
-        valid_records=valid_records,
-        dates=dates, 
-        hba1c_data=hba1c_data, 
-        weight_data=weight_data
-    )
+    return render_template('patient_detail.html', patient=patient, valid_records=valid_records, dates=dates, hba1c_data=hba1c_data, weight_data=weight_data)
 
 @app.route('/record/new/<int:patient_id>', methods=['GET', 'POST'])
 @login_required
 def new_record(patient_id):
     patient = Patient.query.get_or_404(patient_id)
     if request.method == 'POST':
-        valid_records = [r for r in patient.records if r.weight is not None and r.weight > 0]
-        first_record = valid_records[0] if valid_records else None
-        
-        w_curr = float(request.form.get('weight') or 0)
-        f_curr = float(request.form.get('body_fat_kg') or float(request.form.get('masa_grasa_kg') or 0))
-        m_curr = float(request.form.get('muscle_mass_kg') or float(request.form.get('masa_muscular_esqueletica') or 0))
-        wst_curr = float(request.form.get('waist') or 0)
-        
-        w_init = first_record.weight if first_record and first_record.weight else w_curr
-        f_init = first_record.body_fat_kg if first_record and first_record.body_fat_kg else f_curr
-        m_init = first_record.muscle_mass_kg if first_record and first_record.muscle_mass_kg else m_curr
-        wst_init = first_record.waist if first_record and first_record.waist else wst_curr
-
         record = MedicalRecord(
             patient_id=patient.id,
             date=request.form['date'],
@@ -373,15 +407,14 @@ def new_record(patient_id):
             pa=request.form.get('pa'),
             fc=int(request.form.get('fc') or 0),
             height=float(request.form.get('height') or 0),
-            weight=w_curr,
-            body_fat_kg=f_curr,
+            weight=float(request.form.get('weight') or 0),
+            body_fat_kg=float(request.form.get('body_fat_kg') or float(request.form.get('masa_grasa_kg') or 0)),
             body_fat_pct=float(request.form.get('body_fat_pct') or float(request.form.get('porcentaje_grasa_corporal') or 0)),
             visceral_fat=float(request.form.get('visceral_fat') or float(request.form.get('grasa_visceral') or 0)),
-            muscle_mass_kg=m_curr,
+            muscle_mass_kg=float(request.form.get('muscle_mass_kg') or float(request.form.get('masa_muscular_esqueletica') or 0)),
             muscle_mass_pct=float(request.form.get('muscle_mass_pct') or float(request.form.get('porcentaje_musculo_esqueletico') or 0)),
             basal_metabolism=float(request.form.get('basal_metabolism') or float(request.form.get('tasa_metabolica_basal') or 0)),
-            waist=wst_curr,
-            
+            waist=float(request.form.get('waist') or 0),
             masa_grasa_kg=float(request.form.get('masa_grasa_kg') or 0),
             porcentaje_musculo=float(request.form.get('porcentaje_musculo') or 0),
             porcentaje_musculo_esqueletico=float(request.form.get('porcentaje_musculo_esqueletico') or 0),
@@ -395,12 +428,6 @@ def new_record(patient_id):
             peso_sin_grasa=float(request.form.get('peso_sin_grasa') or 0),
             grasa_subcutanea_pct=float(request.form.get('grasa_subcutanea_pct') or 0),
             edad_metabolica=int(request.form.get('edad_metabolica') or 0),
-            
-            weight_lost=round(w_init - w_curr, 2) if first_record else 0.0,
-            fat_lost=round(f_init - f_curr, 2) if first_record else 0.0,
-            muscle_delta=round(m_curr - m_init, 2) if first_record else 0.0,
-            waist_lost=round(wst_init - wst_curr, 2) if first_record else 0.0,
-            
             glucose=float(request.form.get('glucose') or 0),
             insulin=float(request.form.get('insulin') or 0),
             hba1c=float(request.form.get('hba1c') or 0),
@@ -428,11 +455,9 @@ def new_record(patient_id):
             magnesium=float(request.form.get('magnesium') or 0),
             phosphorus=float(request.form.get('phosphorus') or 0),
             chlorine=float(request.form.get('chlorine') or 0),
-            
             ecografia_abdominal=request.form.get('ecografia_abdominal'),
             ecografia_tiroidea=request.form.get('ecografia_tiroidea'),
             otros_estudios=request.form.get('otros_estudios'),
-            
             indicaciones_tratamiento=format_text(request.form.get('indicaciones_tratamiento')),
             medications=format_text(request.form.get('medications')),
             proximo_control=request.form.get('proximo_control'),
@@ -441,66 +466,109 @@ def new_record(patient_id):
         )
         db.session.add(record)
         db.session.commit()
+        
+        # Disparamos el recálculo inteligente
+        recalculate_deltas(patient.id)
 
         if 'photo' in request.files:
             file = request.files['photo']
             if file and allowed_file(file.filename):
                 filename = secure_filename(f"p_{patient.id}_r_{record.id}_{file.filename}")
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                
-                photo = PatientPhoto(
-                    patient_id=patient.id,
-                    record_id=record.id,
-                    filename=filename,
-                    category=request.form.get('photo_category', 'Evolución'),
-                    date=request.form['date'],
-                    notes=request.form.get('photo_notes', '')
-                )
+                photo = PatientPhoto(patient_id=patient.id, record_id=record.id, filename=filename, category=request.form.get('photo_category', 'Evolución'), date=request.form['date'], notes=request.form.get('photo_notes', ''))
                 db.session.add(photo)
                 db.session.commit()
 
         return redirect(url_for('patient_detail', id=patient.id))
     return render_template('new_record.html', patient=patient)
 
-@app.route('/treatment/edit/<int:patient_id>', methods=['GET', 'POST'])
+# --- NUEVO: EDITAR CONTROL (CONSULTA) ---
+@app.route('/record/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
-def edit_treatment(patient_id):
-    patient = Patient.query.get_or_404(patient_id)
-    last_record = MedicalRecord.query.filter_by(patient_id=patient.id).order_by(MedicalRecord.id.desc()).first()
-    
+def edit_record(id):
+    record = MedicalRecord.query.get_or_404(id)
+    patient = record.patient
     if request.method == 'POST':
-        today_str = date.today().strftime('%Y-%m-%d')
-        if not last_record:
-            last_record = MedicalRecord(patient_id=patient.id, date=today_str, weight=None, height=None)
-            db.session.add(last_record)
-            db.session.commit()
-            
-        last_record.indicaciones_tratamiento = format_text(request.form.get('indicaciones_tratamiento'))
-        last_record.medications = format_text(request.form.get('medications'))
-        last_record.proximo_control = request.form.get('proximo_control')
-        last_record.conducta_medica = format_text(request.form.get('conducta_medica'))
-        db.session.commit()
-
-        if 'photo' in request.files:
-            file = request.files['photo']
-            if file and allowed_file(file.filename):
-                filename = secure_filename(f"p_{patient.id}_r_{last_record.id}_{file.filename}")
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                
-                photo = PatientPhoto(
-                    patient_id=patient.id,
-                    record_id=last_record.id,
-                    filename=filename,
-                    category=request.form.get('photo_category', 'Evolución'),
-                    date=last_record.date,
-                    notes=request.form.get('photo_notes', '')
-                )
-                db.session.add(photo)
-                db.session.commit()
-
-        return redirect(url_for('patient_detail', id=patient.id))
+        record.date = request.form['date']
+        record.marca_balanza = request.form.get('marca_balanza')
+        record.pa = request.form.get('pa')
+        record.fc = int(request.form.get('fc') or 0)
+        record.height = float(request.form.get('height') or 0)
+        record.weight = float(request.form.get('weight') or 0)
+        record.body_fat_kg = float(request.form.get('body_fat_kg') or float(request.form.get('masa_grasa_kg') or 0))
+        record.body_fat_pct = float(request.form.get('body_fat_pct') or float(request.form.get('porcentaje_grasa_corporal') or 0))
+        record.visceral_fat = float(request.form.get('visceral_fat') or float(request.form.get('grasa_visceral') or 0))
+        record.muscle_mass_kg = float(request.form.get('muscle_mass_kg') or float(request.form.get('masa_muscular_esqueletica') or 0))
+        record.muscle_mass_pct = float(request.form.get('muscle_mass_pct') or float(request.form.get('porcentaje_musculo_esqueletico') or 0))
+        record.basal_metabolism = float(request.form.get('basal_metabolism') or float(request.form.get('tasa_metabolica_basal') or 0))
+        record.waist = float(request.form.get('waist') or 0)
+        record.masa_grasa_kg = float(request.form.get('masa_grasa_kg') or 0)
+        record.porcentaje_musculo = float(request.form.get('porcentaje_musculo') or 0)
+        record.porcentaje_musculo_esqueletico = float(request.form.get('porcentaje_musculo_esqueletico') or 0)
+        record.masa_muscular_esqueletica = float(request.form.get('masa_muscular_esqueletica') or 0)
+        record.porcentaje_oseo = float(request.form.get('porcentaje_oseo') or 0)
+        record.masa_osea = float(request.form.get('masa_osea') or 0)
+        record.porcentaje_proteina = float(request.form.get('porcentaje_proteina') or 0)
+        record.masa_proteica = float(request.form.get('masa_proteica') or 0)
+        record.porcentaje_agua_corporal = float(request.form.get('porcentaje_agua_corporal') or 0)
+        record.masa_agua_corporal = float(request.form.get('masa_agua_corporal') or 0)
+        record.peso_sin_grasa = float(request.form.get('peso_sin_grasa') or 0)
+        record.grasa_subcutanea_pct = float(request.form.get('grasa_subcutanea_pct') or 0)
+        record.edad_metabolica = int(request.form.get('edad_metabolica') or 0)
+        record.glucose = float(request.form.get('glucose') or 0)
+        record.insulin = float(request.form.get('insulin') or 0)
+        record.hba1c = float(request.form.get('hba1c') or 0)
+        record.triglycerides = float(request.form.get('triglycerides') or 0)
+        record.cholesterol_tot = float(request.form.get('cholesterol_tot') or 0)
+        record.hdl = float(request.form.get('hdl') or 0)
+        record.ldl = float(request.form.get('ldl') or 0)
+        record.vldl = float(request.form.get('vldl') or 0)
+        record.uric_acid = float(request.form.get('uric_acid') or 0)
+        record.got = float(request.form.get('got') or 0)
+        record.gpt = float(request.form.get('gpt') or 0)
+        record.fa = float(request.form.get('fa') or 0)
+        record.bili_tot = float(request.form.get('bili_tot') or 0)
+        record.bili_dir = float(request.form.get('bili_dir') or 0)
+        record.bili_ind = float(request.form.get('bili_ind') or 0)
+        record.urea = float(request.form.get('urea') or 0)
+        record.creatinine = float(request.form.get('creatinine') or 0)
+        record.tsh = float(request.form.get('tsh') or 0)
+        record.t4 = float(request.form.get('t4') or 0)
+        record.t3 = float(request.form.get('t3') or 0)
+        record.anti_tpo = float(request.form.get('anti_tpo') or 0)
+        record.vit_d = float(request.form.get('vit_d') or 0)
+        record.vit_b12 = float(request.form.get('vit_b12') or 0)
+        record.calcium = float(request.form.get('calcium') or 0)
+        record.magnesium = float(request.form.get('magnesium') or 0)
+        record.phosphorus = float(request.form.get('phosphorus') or 0)
+        record.chlorine = float(request.form.get('chlorine') or 0)
+        record.ecografia_abdominal = request.form.get('ecografia_abdominal')
+        record.ecografia_tiroidea = request.form.get('ecografia_tiroidea')
+        record.otros_estudios = request.form.get('otros_estudios')
+        record.indicaciones_tratamiento = format_text(request.form.get('indicaciones_tratamiento'))
+        record.medications = format_text(request.form.get('medications'))
+        record.proximo_control = request.form.get('proximo_control')
+        record.notes = request.form.get('notes')
+        record.conducta_medica = format_text(request.form.get('conducta_medica'))
         
-    return render_template('edit_treatment.html', patient=patient, record=last_record)
+        db.session.commit()
+        # Recalculamos al editar por si cambió el peso, la fecha, etc.
+        recalculate_deltas(patient.id)
+        
+        return redirect(url_for('patient_detail', id=patient.id))
+    return render_template('edit_record.html', patient=patient, record=record)
+
+# --- NUEVO: ELIMINAR CONTROL ---
+@app.route('/record/delete/<int:id>', methods=['POST'])
+@login_required
+def delete_record(id):
+    record = MedicalRecord.query.get_or_404(id)
+    patient_id = record.patient_id
+    db.session.delete(record)
+    db.session.commit()
+    # Si borró un control, recalculamos la evolución con los que sobran
+    recalculate_deltas(patient_id)
+    return redirect(url_for('patient_detail', id=patient_id))
 
 @app.route('/export/excel')
 @login_required
@@ -519,7 +587,7 @@ def export_excel():
     ])
     patients = Patient.query.all()
     for p in patients:
-        valid_recs = [r for r in p.records if r.weight is not None and r.weight > 0]
+        valid_recs = sorted([r for r in p.records if r.weight is not None and r.weight > 0], key=lambda x: x.date)
         if valid_recs:
             for r in valid_recs:
                 writer.writerow([
@@ -535,11 +603,7 @@ def export_excel():
         else:
             writer.writerow([p.id, p.full_name, p.ci, p.age, p.gender, p.phone, p.sanatorio, p.procedencia, p.profession, p.pathology_type, p.seguro_medico, p.fecha_inicio_tratamiento, p.evolution_years, p.antecedentes_familiares, p.antecedentes_personales, p.comorbidities, p.tratamiento_base, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''])
     output.seek(0)
-    return Response(
-        output.getvalue(),
-        mimetype="text/csv",
-        headers={"Content-Disposition": "attachment;filename=matriz_metabolica_pacientes.csv"}
-    )
+    return Response(output.getvalue(), mimetype="text/csv", headers={"Content-Disposition": "attachment;filename=matriz_metabolica_pacientes.csv"})
 
 @app.route('/report/pdf/<int:patient_id>')
 @login_required
@@ -548,144 +612,82 @@ def generate_pdf(patient_id):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=20, leftMargin=20, topMargin=20, bottomMargin=20)
     story = []
-    
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle(
-        'DocTitle', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=14, alignment=1, spaceAfter=15
-    )
-    section_style = ParagraphStyle(
-        'SectionHeading', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10, alignment=1, spaceAfter=8, spaceBefore=10
-    )
-    body_style = ParagraphStyle(
-        'DocBody', parent=styles['Normal'], fontName='Helvetica', fontSize=9, leading=13
-    )
-    contact_style = ParagraphStyle(
-        'ContactInfo', parent=styles['Normal'], fontName='Helvetica', fontSize=8, alignment=1, textColor=colors.HexColor('#555555'), spaceAfter=15
-    )
-    
-    # Estilo seguro para celdas de la tabla
+    title_style = ParagraphStyle('DocTitle', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=14, alignment=1, spaceAfter=15)
+    section_style = ParagraphStyle('SectionHeading', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10, alignment=1, spaceAfter=8, spaceBefore=10)
+    body_style = ParagraphStyle('DocBody', parent=styles['Normal'], fontName='Helvetica', fontSize=9, leading=13)
+    contact_style = ParagraphStyle('ContactInfo', parent=styles['Normal'], fontName='Helvetica', fontSize=8, alignment=1, textColor=colors.HexColor('#555555'), spaceAfter=15)
     cell_style = ParagraphStyle('CellStyle', fontName='Helvetica', fontSize=8, alignment=1)
     
-    # 1. Logo más grande
     logo_path = os.path.join(app.config['UPLOAD_FOLDER'].replace('/var/data/uploads', 'static'), 'logo.png')
-    if not os.path.exists(logo_path):
-        logo_path = os.path.join('static', 'logo.png')
+    if not os.path.exists(logo_path): logo_path = os.path.join('static', 'logo.png')
         
     if os.path.exists(logo_path):
         story.append(RLImage(logo_path, width=220, height=80))
         story.append(Spacer(1, 5))
-        # 2. Contacto debajo del logo
         story.append(Paragraph("Instagram: @drasofiafernandez &nbsp;&nbsp;|&nbsp;&nbsp; Teléfono: 0986926714", contact_style))
         story.append(Spacer(1, 10))
     else:
         story.append(Paragraph("Instagram: @drasofiafernandez &nbsp;&nbsp;|&nbsp;&nbsp; Teléfono: 0986926714", contact_style))
         story.append(Spacer(1, 15))
     
-    valid_records = [r for r in patient.records if r.weight is not None and r.weight > 0]
-    last_r = valid_records[-1] if valid_records else (patient.records[-1] if patient.records else None)
+    valid_records = sorted([r for r in patient.records if r.weight is not None and r.weight > 0], key=lambda x: x.date)
+    last_r = valid_records[-1] if valid_records else None
     report_date = last_r.date if last_r else "N/D"
     
     story.append(Paragraph(f"{patient.full_name.upper()} &nbsp;&nbsp;&nbsp;&nbsp; {report_date}", title_style))
     story.append(Spacer(1, 5))
     
     if valid_records:
-        table_data = [[
-            'FECHA', 'BAL.', 'PA / FC', 'ALT.\n(cm)', 'PESO\n(kg)', 'GRASA\n(kg)', 'GRASA\n(%)', 'VISC.', 'MÚSC.\n(kg)', 'MÚSC.\n(%)', 'METAB.\n(kcal)', 'IMC', 'CA\n(cm)'
-        ]]
+        table_data = [['FECHA', 'BAL.', 'PA / FC', 'ALT.\n(cm)', 'PESO\n(kg)', 'GRASA\n(kg)', 'GRASA\n(%)', 'VISC.', 'MÚSC.\n(kg)', 'MÚSC.\n(%)', 'METAB.\n(kcal)', 'IMC', 'CA\n(cm)']]
         for r in valid_records:
             pa_fc = f"{r.pa or '-'} / {r.fc or '-'}"
-            table_data.append([
-                str(r.date), str(r.marca_balanza or '-'), pa_fc, str(r.height or '-'), str(r.weight or '-'), str(r.body_fat_kg or '-'),
-                str(r.body_fat_pct or '-'), str(r.visceral_fat or '-'), str(r.muscle_mass_kg or '-'),
-                str(r.muscle_mass_pct or '-'), str(r.basal_metabolism or '-'), str(r.bmi or '-'), str(r.waist or '-')
-            ])
+            table_data.append([str(r.date), str(r.marca_balanza or '-'), pa_fc, str(r.height or '-'), str(r.weight or '-'), str(r.body_fat_kg or '-'), str(r.body_fat_pct or '-'), str(r.visceral_fat or '-'), str(r.muscle_mass_kg or '-'), str(r.muscle_mass_pct or '-'), str(r.basal_metabolism or '-'), str(r.bmi or '-'), str(r.waist or '-')])
         
         t = Table(table_data, colWidths=[55, 45, 50, 35, 35, 38, 35, 35, 38, 35, 45, 30, 30])
         t.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e8f4f4')),
-            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0,0), (-1,0), 6.5),
-            ('FONTSIZE', (0,1), (-1,-1), 6.5),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cccccc')),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e8f4f4')), ('ALIGN', (0,0), (-1,-1), 'CENTER'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'), ('FONTSIZE', (0,0), (-1,0), 6.5), ('FONTSIZE', (0,1), (-1,-1), 6.5),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cccccc')), ('BOTTOMPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 4),
         ]))
         story.append(t)
         story.append(Spacer(1, 10))
         
         first_r = valid_records[0]
-        w_init = float(first_r.weight or 0)
-        w_last = float(last_r.weight or 0)
-        w_diff = round(w_init - w_last, 2)
+        w_init, w_last = float(first_r.weight or 0), float(last_r.weight or 0)
+        f_init, f_last = float(first_r.body_fat_kg or 0), float(last_r.body_fat_kg or 0)
+        m_init, m_last = float(first_r.muscle_mass_kg or 0), float(last_r.muscle_mass_kg or 0)
+        c_init, c_last = float(first_r.waist or 0), float(last_r.waist or 0)
         
-        f_init = float(first_r.body_fat_kg or 0)
-        f_last = float(last_r.body_fat_kg or 0)
-        f_diff = round(f_init - f_last, 2)
-        
-        m_init = float(first_r.muscle_mass_kg or 0)
-        m_last = float(last_r.muscle_mass_kg or 0)
-        m_diff = round(m_last - m_init, 2)
-        
-        c_init = float(first_r.waist or 0)
-        c_last = float(last_r.waist or 0)
-        c_diff = round(c_init - c_last, 2)
+        w_diff, f_diff, m_diff, c_diff = round(w_init - w_last, 2), round(f_init - f_last, 2), round(m_last - m_init, 2), round(c_init - c_last, 2)
         
         story.append(Paragraph("RESUMEN DESDE INICIO AL ÚLTIMO CONTROL", section_style))
         
-        # 3. Colores seguros en formato HEX para ReportLab
-        hex_green = '#2a9d8f'
-        hex_red = '#e63946'
-        hex_black = '#000000'
-        
         def format_diff(val, is_muscle=False):
-            if val == 0:
-                return Paragraph(f"<font color='{hex_black}'>0.0</font>", cell_style)
-            
+            if val == 0: return Paragraph(f"<font color='#000000'>0.0</font>", cell_style)
             is_good = val > 0
-            if is_muscle:
-                str_val = f"+{val}" if val > 0 else f"{val}"
-            else:
-                str_val = f"-{val}" if val > 0 else f"+{abs(val)}"
-            
-            color = hex_green if is_good else hex_red
+            str_val = (f"+{val}" if val > 0 else f"{val}") if is_muscle else (f"-{val}" if val > 0 else f"+{abs(val)}")
+            color = '#2a9d8f' if is_good else '#e63946'
             return Paragraph(f"<font color='{color}'><b>{str_val}</b></font>", cell_style)
 
-        def center_val(val):
-            return Paragraph(f"{val}", cell_style)
+        def center_val(val): return Paragraph(f"{val}", cell_style)
 
         sum_data = [
-            ['Peso inicial (kg)', 'Peso último (kg)', 'Diferencia Peso (kg)'],
-            [center_val(w_init), center_val(w_last), format_diff(w_diff)],
-            ['Grasa inicial (kg)', 'Grasa última (kg)', 'Diferencia Grasa (kg)'],
-            [center_val(f_init), center_val(f_last), format_diff(f_diff)],
-            ['Músculo inicial (kg)', 'Músculo último (kg)', 'Diferencia Músculo (kg)'],
-            [center_val(m_init), center_val(m_last), format_diff(m_diff, is_muscle=True)],
-            ['Cintura inicial (cm)', 'Cintura última (cm)', 'Diferencia Cintura (cm)'],
-            [center_val(c_init), center_val(c_last), format_diff(c_diff)]
+            ['Peso inicial (kg)', 'Peso último (kg)', 'Diferencia Peso (kg)'], [center_val(w_init), center_val(w_last), format_diff(w_diff)],
+            ['Grasa inicial (kg)', 'Grasa última (kg)', 'Diferencia Grasa (kg)'], [center_val(f_init), center_val(f_last), format_diff(f_diff)],
+            ['Músculo inicial (kg)', 'Músculo último (kg)', 'Diferencia Músculo (kg)'], [center_val(m_init), center_val(m_last), format_diff(m_diff, is_muscle=True)],
+            ['Cintura inicial (cm)', 'Cintura última (cm)', 'Diferencia Cintura (cm)'], [center_val(c_init), center_val(c_last), format_diff(c_diff)]
         ]
         
         sum_table = Table(sum_data, colWidths=[180, 180, 180])
         sum_table.setStyle(TableStyle([
-            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('FONTNAME', (0,2), (-1,2), 'Helvetica-Bold'),
-            ('FONTNAME', (0,4), (-1,4), 'Helvetica-Bold'),
-            ('FONTNAME', (0,6), (-1,6), 'Helvetica-Bold'),
-            ('FONTSIZE', (0,0), (-1,-1), 8),
-            ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor('#006666')),
-            ('TEXTCOLOR', (0,2), (-1,2), colors.HexColor('#006666')),
-            ('TEXTCOLOR', (0,4), (-1,4), colors.HexColor('#006666')),
-            ('TEXTCOLOR', (0,6), (-1,6), colors.HexColor('#006666')),
-            ('GRID', (0,0), (-1,-1), 0.75, colors.HexColor('#006666')),
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f0f8f8')),
-            ('BACKGROUND', (0,2), (-1,2), colors.HexColor('#f0f8f8')),
-            ('BACKGROUND', (0,4), (-1,4), colors.HexColor('#f0f8f8')),
-            ('BACKGROUND', (0,6), (-1,6), colors.HexColor('#f0f8f8')),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTNAME', (0,2), (-1,2), 'Helvetica-Bold'), ('FONTNAME', (0,4), (-1,4), 'Helvetica-Bold'), ('FONTNAME', (0,6), (-1,6), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,-1), 8), ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor('#006666')), ('TEXTCOLOR', (0,2), (-1,2), colors.HexColor('#006666')),
+            ('TEXTCOLOR', (0,4), (-1,4), colors.HexColor('#006666')), ('TEXTCOLOR', (0,6), (-1,6), colors.HexColor('#006666')),
+            ('GRID', (0,0), (-1,-1), 0.75, colors.HexColor('#006666')), ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f0f8f8')),
+            ('BACKGROUND', (0,2), (-1,2), colors.HexColor('#f0f8f8')), ('BACKGROUND', (0,4), (-1,4), colors.HexColor('#f0f8f8')),
+            ('BACKGROUND', (0,6), (-1,6), colors.HexColor('#f0f8f8')), ('BOTTOMPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 4),
         ]))
         story.append(sum_table)
         story.append(Spacer(1, 15))
@@ -693,27 +695,17 @@ def generate_pdf(patient_id):
         story.append(Paragraph("<b>INDICACIONES Y PLAN TERAPÉUTICO</b>", section_style))
         story.append(Spacer(1, 5))
         
-        meds = last_r.medications or ""
-        inds = last_r.indicaciones_tratamiento or ""
-        
-        plan_text = ""
+        meds, inds, plan_text = last_r.medications or "", last_r.indicaciones_tratamiento or "", ""
         if meds:
             for line in meds.split('\n'):
-                if line.strip():
-                    plan_text += f"• &nbsp; <b>{line.upper()}</b><br/>"
+                if line.strip(): plan_text += f"• &nbsp; <b>{line.upper()}</b><br/>"
         if inds:
             for line in inds.split('\n'):
-                if line.strip():
-                    plan_text += f"• &nbsp; {line.upper()}<br/>"
-        if last_r.proximo_control:
-            plan_text += f"<br/>• &nbsp; <b>CONTROL EN {last_r.proximo_control.upper()}.</b>"
-            
-        if not plan_text:
-            plan_text = "Sin indicaciones registradas para este control."
+                if line.strip(): plan_text += f"• &nbsp; {line.upper()}<br/>"
+        if last_r.proximo_control: plan_text += f"<br/>• &nbsp; <b>CONTROL EN {last_r.proximo_control.upper()}.</b>"
+        if not plan_text: plan_text = "Sin indicaciones registradas para este control."
             
         story.append(Paragraph(plan_text, body_style))
-        story.append(Spacer(1, 15))
-        
     else:
         story.append(Paragraph("No hay controles antropométricos registrados todavía para este paciente.", body_style))
         
