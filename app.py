@@ -218,18 +218,15 @@ def recalculate_deltas(patient_id):
     patient = Patient.query.get(patient_id)
     if not patient: return
     
-    # 1. Obtenemos los controles válidos y los ORDENAMOS por fecha (cronológicamente)
     valid_records = sorted([r for r in patient.records if r.weight is not None and r.weight > 0], key=lambda x: x.date)
     if not valid_records: return
     
-    # 2. El registro más antiguo será siempre la base de cálculo
     first_r = valid_records[0]
     w_init = first_r.weight or 0
     f_init = first_r.body_fat_kg or 0
     m_init = first_r.muscle_mass_kg or 0
     wst_init = first_r.waist or 0
     
-    # 3. Recalculamos todas las diferencias para todo el historial
     for r in valid_records:
         r.weight_lost = round(w_init - (r.weight or 0), 2)
         r.fat_lost = round(f_init - (r.body_fat_kg or 0), 2)
@@ -336,7 +333,6 @@ def new_patient():
         return redirect(url_for('index'))
     return render_template('new_patient.html')
 
-# --- NUEVO: EDITAR PACIENTE ---
 @app.route('/patient/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit_patient(id):
@@ -375,7 +371,6 @@ def edit_patient(id):
         return redirect(url_for('patient_detail', id=patient.id))
     return render_template('edit_patient.html', patient=patient)
 
-# --- NUEVO: ELIMINAR PACIENTE ---
 @app.route('/patient/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_patient(id):
@@ -388,7 +383,6 @@ def delete_patient(id):
 @login_required
 def patient_detail(id):
     patient = Patient.query.get_or_404(id)
-    # Ordenamos visualmente el historial por fecha
     valid_records = sorted([r for r in patient.records if r.weight is not None and r.weight > 0], key=lambda x: x.date)
     dates = [r.date for r in valid_records]
     hba1c_data = [r.hba1c for r in valid_records if r.hba1c]
@@ -467,7 +461,6 @@ def new_record(patient_id):
         db.session.add(record)
         db.session.commit()
         
-        # Disparamos el recálculo inteligente
         recalculate_deltas(patient.id)
 
         if 'photo' in request.files:
@@ -482,7 +475,6 @@ def new_record(patient_id):
         return redirect(url_for('patient_detail', id=patient.id))
     return render_template('new_record.html', patient=patient)
 
-# --- NUEVO: EDITAR CONTROL (CONSULTA) ---
 @app.route('/record/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit_record(id):
@@ -552,13 +544,11 @@ def edit_record(id):
         record.conducta_medica = format_text(request.form.get('conducta_medica'))
         
         db.session.commit()
-        # Recalculamos al editar por si cambió el peso, la fecha, etc.
         recalculate_deltas(patient.id)
         
         return redirect(url_for('patient_detail', id=patient.id))
     return render_template('edit_record.html', patient=patient, record=record)
 
-# --- NUEVO: ELIMINAR CONTROL ---
 @app.route('/record/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_record(id):
@@ -566,9 +556,50 @@ def delete_record(id):
     patient_id = record.patient_id
     db.session.delete(record)
     db.session.commit()
-    # Si borró un control, recalculamos la evolución con los que sobran
     recalculate_deltas(patient_id)
     return redirect(url_for('patient_detail', id=patient_id))
+
+# --- RUTA DEL PLAN MÉDICO (LA QUE FALTABA) ---
+@app.route('/treatment/edit/<int:patient_id>', methods=['GET', 'POST'])
+@login_required
+def edit_treatment(patient_id):
+    patient = Patient.query.get_or_404(patient_id)
+    last_record = MedicalRecord.query.filter_by(patient_id=patient.id).order_by(MedicalRecord.id.desc()).first()
+    
+    if request.method == 'POST':
+        today_str = date.today().strftime('%Y-%m-%d')
+        if not last_record:
+            last_record = MedicalRecord(patient_id=patient.id, date=today_str, weight=None, height=None)
+            db.session.add(last_record)
+            db.session.commit()
+            
+        last_record.indicaciones_tratamiento = format_text(request.form.get('indicaciones_tratamiento'))
+        last_record.medications = format_text(request.form.get('medications'))
+        last_record.proximo_control = request.form.get('proximo_control')
+        last_record.conducta_medica = format_text(request.form.get('conducta_medica'))
+        db.session.commit()
+
+        if 'photo' in request.files:
+            file = request.files['photo']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(f"p_{patient.id}_r_{last_record.id}_{file.filename}")
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                
+                photo = PatientPhoto(
+                    patient_id=patient.id,
+                    record_id=last_record.id,
+                    filename=filename,
+                    category=request.form.get('photo_category', 'Evolución'),
+                    date=last_record.date,
+                    notes=request.form.get('photo_notes', '')
+                )
+                db.session.add(photo)
+                db.session.commit()
+
+        return redirect(url_for('patient_detail', id=patient.id))
+        
+    return render_template('edit_treatment.html', patient=patient, record=last_record)
+# ---------------------------------------------
 
 @app.route('/export/excel')
 @login_required
