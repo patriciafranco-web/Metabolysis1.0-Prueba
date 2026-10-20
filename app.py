@@ -769,7 +769,7 @@ def generate_pdf(patient_id):
                 ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor('#7f4f24')),
                 ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#ddb892')),
                 ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#fde2e4')),
-                ('BACKGROUND', (0,1), (-1,1), colors.white),
+                ('BACKGROUND', (0,1), (-1,1), colors.HexColor('#ffffff')),
                 ('BOTTOMPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 4),
             ]))
             story.append(mini_last_table)
