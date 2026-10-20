@@ -147,4 +147,64 @@
         </form>
     </div>
 </div>
+
+<script>
+// --- SISTEMA DE AUTOGUARDADO (BORRADOR AUTOMÁTICO) ---
+document.addEventListener("DOMContentLoaded", function() {
+    var form = document.querySelector("form");
+    if (!form) return;
+
+    var draftKey = "draft_" + window.location.pathname;
+
+    // 1. RECUPERAR: Si hay un borrador guardado, rellenar el formulario
+    var savedDraft = localStorage.getItem(draftKey);
+    if (savedDraft) {
+        var formData = JSON.parse(savedDraft);
+        for (var key in formData) {
+            var field = form.querySelector("[name='" + key + "']");
+            if (field && field.type !== "file") {
+                if (field.type === "radio") {
+                    var radioToCheck = form.querySelector("input[name='" + key + "'][value='" + formData[key] + "']");
+                    if (radioToCheck) radioToCheck.checked = true;
+                } else {
+                    field.value = formData[key];
+                }
+            }
+        }
+        
+        var alertDiv = document.createElement("div");
+        alertDiv.className = "alert alert-success border-success text-dark py-2 mt-3 fw-bold";
+        alertDiv.innerHTML = "📝 ¡Borrador recuperado! Hemos restaurado los datos que no llegaste a guardar.";
+        form.insertBefore(alertDiv, form.firstChild);
+    }
+
+    // 2. AUTOGUARDAR: Cada vez que teclea algo, se guarda en tiempo real
+    form.addEventListener("input", function() {
+        var formData = {};
+        var inputs = form.querySelectorAll("input, textarea, select");
+        inputs.forEach(function(input) {
+            if (input.name && input.type !== "file") {
+                if (input.type === "radio") {
+                    if (input.checked) formData[input.name] = input.value;
+                } else {
+                    formData[input.name] = input.value;
+                }
+            }
+        });
+        localStorage.setItem(draftKey, JSON.stringify(formData));
+    });
+
+    // 3. LIMPIAR Y BLOQUEAR BOTÓN: Borra el borrador al guardar y muestra aviso de carga
+    form.addEventListener("submit", function() {
+        localStorage.removeItem(draftKey);
+        
+        var btn = form.querySelector("button[type='submit']");
+        if(btn) {
+            btn.innerHTML = "⏳ Guardando, por favor espere...";
+            btn.classList.add("disabled");
+            btn.style.pointerEvents = "none";
+        }
+    });
+});
+</script>
 {% endblock %}
