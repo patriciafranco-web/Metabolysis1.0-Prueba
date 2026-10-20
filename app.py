@@ -312,9 +312,15 @@ def index():
 @login_required
 def new_patient():
     if request.method == 'POST':
+        ci_input = request.form.get('ci', '').strip()
+        
+        # --- PROTECCIÓN ANTI-DUPLICADOS ---
+        if Patient.query.filter_by(ci=ci_input).first():
+            return f"<script>alert('❌ ERROR: Ya existe un paciente registrado con la Cédula {ci_input}. No se puede duplicar.'); window.history.back();</script>"
+        
         patient = Patient(
             full_name=format_text(request.form.get('full_name', '')),
-            ci=request.form.get('ci', '').strip(),
+            ci=ci_input,
             birth_date=request.form.get('birth_date'),
             age=parse_int(request.form.get('age')),
             gender=request.form.get('gender'),
@@ -353,8 +359,15 @@ def new_patient():
 def edit_patient(id):
     patient = Patient.query.get_or_404(id)
     if request.method == 'POST':
+        ci_input = request.form.get('ci', '').strip()
+        
+        # --- PROTECCIÓN ANTI-DUPLICADOS AL EDITAR ---
+        existing = Patient.query.filter_by(ci=ci_input).first()
+        if existing and existing.id != patient.id:
+            return f"<script>alert('❌ ERROR: La Cédula {ci_input} ya le pertenece a otro paciente en el sistema.'); window.history.back();</script>"
+        
         patient.full_name = format_text(request.form.get('full_name', ''))
-        patient.ci = request.form.get('ci', '').strip()
+        patient.ci = ci_input
         patient.birth_date = request.form.get('birth_date')
         patient.age = parse_int(request.form.get('age'))
         patient.gender = request.form.get('gender')
