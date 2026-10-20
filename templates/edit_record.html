@@ -137,4 +137,20 @@
         </form>
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var form = document.querySelector("form");
+    if(form) {
+        form.addEventListener("submit", function(e) {
+            var btn = form.querySelector("button[type='submit']");
+            if(btn) {
+                btn.innerHTML = "⏳ Guardando, por favor espere...";
+                btn.classList.add("disabled");
+                btn.style.pointerEvents = "none";
+            }
+        });
+    }
+});
+</script>
 {% endblock %}
