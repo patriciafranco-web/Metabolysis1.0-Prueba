@@ -26,7 +26,7 @@
         <h2 class="text-center text-danger fw-bold">❤️ METABOLISYS</h2>
         <h4 class="text-center mb-4">Nuevo Control Clínico para: {{ patient.full_name }}</h4>
         
-        <form method="POST" enctype="multipart/form-data">
+        <form method="POST" action="{{ url_for('new_record', patient_id=patient.id) }}" enctype="multipart/form-data">
             <div class="mb-4">
                 <label class="form-label fw-bold">Fecha del Control *</label>
                 <input type="date" class="form-control" name="date" required style="max-width: 300px;">
@@ -35,24 +35,20 @@
             <div class="card bg-black border-secondary p-3 mb-4">
                 <h6 class="text-warning mb-3">🩺 Datos de la Consulta y Balanza</h6>
                 <div class="row g-3">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label">Marca de Balanza</label>
                         <select class="form-select bg-dark text-white border-secondary" name="marca_balanza" id="balanzaSelect" onchange="toggleRenphoFields()">
                             <option value="Omron">Omron</option>
                             <option value="Renpho">Renpho</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label">Presión Arterial (PA)</label>
                         <input type="text" class="form-control" name="pa" placeholder="Ej. 120/80">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label">Frecuencia Cardíaca (FC)</label>
                         <input type="number" class="form-control" name="fc" placeholder="Ej. 72">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Glicemia (mg/dL)</label>
-                        <input type="number" step="0.1" class="form-control" name="glucose" placeholder="Ej. 95">
                     </div>
                 </div>
             </div>
@@ -77,7 +73,7 @@
                     <h5 class="section-title">Antropometría y Composición Corporal</h5>
                     <div class="row g-3">
                         <div class="col-md-3"><label class="form-label">Altura (cm)</label><input type="number" step="0.1" class="form-control" name="height"></div>
-                        <div class="col-md-3"><label class="form-label">Peso (kg)</label><input type="number" step="0.1" class="form-control" name="weight"></div>
+                        <div class="col-md-3"><label class="form-label">Peso (kg) *</label><input type="number" step="0.1" class="form-control" name="weight" required></div>
                         <div class="col-md-3"><label class="form-label">Cintura (cm)</label><input type="number" step="0.1" class="form-control" name="waist"></div>
                         <div class="col-md-3"><label class="form-label">Grasa Corporal (kg)</label><input type="number" step="0.1" class="form-control" name="body_fat_kg"></div>
                         <div class="col-md-3"><label class="form-label">Grasa Corporal (%)</label><input type="number" step="0.1" class="form-control" name="body_fat_pct"></div>
@@ -115,10 +111,7 @@
                 <div class="tab-pane fade" id="laboratorios" role="tabpanel">
                     <h5 class="section-title">Laboratorios y Bioquímica</h5>
                     <div class="row g-3">
-                        <div class="col-md-3">
-    <label class="form-label text-light">Glicemia</label>
-    <input type="number" step="0.01" class="form-control bg-dark text-white border-secondary" name="glucose">
-</div>
+                        <div class="col-md-3"><label class="form-label text-light">Glicemia</label><input type="number" step="0.01" class="form-control bg-dark text-white border-secondary" name="glucose"></div>
                         <div class="col-md-3"><label class="form-label">Insulina</label><input type="number" step="0.1" class="form-control" name="insulin"></div>
                         <div class="col-md-3"><label class="form-label">HbA1c (%)</label><input type="number" step="0.01" class="form-control" name="hba1c"></div>
                         <div class="col-md-3"><label class="form-label">Triglicéridos</label><input type="number" step="0.1" class="form-control" name="triglycerides"></div>
@@ -210,6 +203,34 @@ function toggleRenphoFields() {
     }
 }
 toggleRenphoFields();
+
+document.addEventListener("DOMContentLoaded", function() {
+    var form = document.querySelector("form");
+    if(form) {
+        // 1. Mostrar campos obligatorios ocultos en pestañas
+        form.addEventListener("invalid", function(e) {
+            var invalidField = e.target;
+            var pane = invalidField.closest(".tab-pane");
+            if (pane) {
+                var tabButton = document.querySelector("[data-bs-target='#" + pane.id + "']");
+                if (tabButton) {
+                    tabButton.click(); // Cambia a la pestaña oculta
+                    setTimeout(function() { invalidField.focus(); }, 100);
+                }
+            }
+        }, true);
+
+        // 2. Prevenir múltiples clics y mostrar que está cargando
+        form.addEventListener("submit", function(e) {
+            var btn = form.querySelector("button[type='submit']");
+            if(btn) {
+                btn.innerHTML = "⏳ Guardando, por favor espere...";
+                btn.classList.add("disabled");
+                btn.style.pointerEvents = "none";
+            }
+        });
+    }
+});
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
