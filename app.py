@@ -39,7 +39,7 @@ def format_text(text):
     formatted_lines = [" ".join([w.capitalize() for w in line.split()]) for line in lines if line.strip()]
     return "\n".join(formatted_lines)
 
-# --- FUNCIONES BLINDADAS PARA NÚMEROS (Adiós al error de las comas) ---
+# --- FUNCIONES BLINDADAS PARA NÚMEROS ---
 def parse_float(value):
     if not value: return 0.0
     try:
@@ -53,7 +53,7 @@ def parse_int(value):
         return int(float(str(value).replace(',', '.').strip()))
     except:
         return 0
-# ---------------------------------------------------------------------
+# ----------------------------------------
 
 db = SQLAlchemy(app)
 
@@ -742,7 +742,7 @@ def generate_pdf(patient_id):
         story.append(sum_table)
         story.append(Spacer(1, 15))
 
-        # --- NUEVO: RESUMEN DEL ÚLTIMO MES (ENTRE LOS DOS ÚLTIMOS CONTROLES) ---
+        # --- NUEVO: RESUMEN COMPACTO DEL ÚLTIMO MES ---
         if len(valid_records) >= 2:
             prev_r = valid_records[-2]
             w_prev = float(prev_r.weight or 0)
@@ -755,28 +755,26 @@ def generate_pdf(patient_id):
             m_diff_last = round(m_last - m_prev, 2)
             c_diff_last = round(c_prev - c_last, 2)
             
-            story.append(Paragraph("RESUMEN DEL ÚLTIMO MES (CONTRA EL CONTROL ANTERIOR)", section_style))
+            story.append(Paragraph("DIFERENCIAS DEL ÚLTIMO MES (CONTROL ACTUAL VS ANTERIOR)", section_style))
             
-            sum_last_data = [
-                ['Peso control anterior (kg)', 'Peso actual (kg)', 'Diferencia Mensual Peso (kg)'], [center_val(w_prev), center_val(w_last), format_diff(w_diff_last)],
-                ['Grasa control anterior (kg)', 'Grasa actual (kg)', 'Diferencia Mensual Grasa (kg)'], [center_val(f_prev), center_val(f_last), format_diff(f_diff_last)],
-                ['Músculo control anterior (kg)', 'Músculo actual (kg)', 'Diferencia Mensual Músculo (kg)'], [center_val(m_prev), center_val(m_last), format_diff(m_diff_last, is_muscle=True)],
-                ['Cintura control anterior (cm)', 'Cintura actual (cm)', 'Diferencia Mensual Cintura (cm)'], [center_val(c_prev), center_val(c_last), format_diff(c_diff_last)]
+            mini_last_data = [
+                ['Dif. Peso (kg)', 'Dif. Grasa (kg)', 'Dif. Músculo (kg)', 'Dif. Cintura (cm)'],
+                [format_diff(w_diff_last), format_diff(f_diff_last), format_diff(m_diff_last, is_muscle=True), format_diff(c_diff_last)]
             ]
             
-            sum_last_table = Table(sum_last_data, colWidths=[180, 180, 180])
-            sum_last_table.setStyle(TableStyle([
-                ('ALIGN', (0,0), (-1,-1), 'CENTER'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-                ('FONTNAME', (0,2), (-1,2), 'Helvetica-Bold'), ('FONTNAME', (0,4), (-1,4), 'Helvetica-Bold'), ('FONTNAME', (0,6), (-1,6), 'Helvetica-Bold'),
-                ('FONTSIZE', (0,0), (-1,-1), 8), ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor('#006666')), ('TEXTCOLOR', (0,2), (-1,2), colors.HexColor('#006666')),
-                ('TEXTCOLOR', (0,4), (-1,4), colors.HexColor('#006666')), ('TEXTCOLOR', (0,6), (-1,6), colors.HexColor('#006666')),
-                ('GRID', (0,0), (-1,-1), 0.75, colors.HexColor('#006666')), ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#fff4e6')), 
-                ('BACKGROUND', (0,2), (-1,2), colors.HexColor('#fff4e6')), ('BACKGROUND', (0,4), (-1,4), colors.HexColor('#fff4e6')),
-                ('BACKGROUND', (0,6), (-1,6), colors.HexColor('#fff4e6')), ('BOTTOMPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 4),
+            mini_last_table = Table(mini_last_data, colWidths=[130, 130, 130, 130])
+            mini_last_table.setStyle(TableStyle([
+                ('ALIGN', (0,0), (-1,-1), 'CENTER'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'), ('FONTSIZE', (0,0), (-1,-1), 8),
+                ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor('#7f4f24')),
+                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#ddb892')),
+                ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#fde2e4')),
+                ('BACKGROUND', (0,1), (-1,1), colors.white),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 4),
             ]))
-            story.append(sum_last_table)
+            story.append(mini_last_table)
             story.append(Spacer(1, 15))
-        # -------------------------------------------------------------------------
+        # ----------------------------------------------
         
         story.append(Paragraph("<b>INDICACIONES Y PLAN TERAPÉUTICO</b>", section_style))
         story.append(Spacer(1, 5))
