@@ -39,6 +39,22 @@ def format_text(text):
     formatted_lines = [" ".join([w.capitalize() for w in line.split()]) for line in lines if line.strip()]
     return "\n".join(formatted_lines)
 
+# --- FUNCIONES BLINDADAS PARA NÚMEROS (Adiós al error de las comas) ---
+def parse_float(value):
+    if not value: return 0.0
+    try:
+        return float(str(value).replace(',', '.').strip())
+    except:
+        return 0.0
+
+def parse_int(value):
+    if not value: return 0
+    try:
+        return int(float(str(value).replace(',', '.').strip()))
+    except:
+        return 0
+# ---------------------------------------------------------------------
+
 db = SQLAlchemy(app)
 
 class User(db.Model):
@@ -221,7 +237,6 @@ def recalculate_deltas(patient_id):
     valid_records = sorted([r for r in patient.records if r.weight is not None and r.weight > 0], key=lambda x: x.date)
     if not valid_records: return
     
-    # Busca dinámicamente el primer dato válido de cada métrica
     w_init = next((r.weight for r in valid_records if r.weight), 0)
     f_init = next((r.body_fat_kg for r in valid_records if r.body_fat_kg), 0)
     m_init = next((r.muscle_mass_kg for r in valid_records if r.muscle_mass_kg), 0)
@@ -298,17 +313,17 @@ def index():
 def new_patient():
     if request.method == 'POST':
         patient = Patient(
-            full_name=format_text(request.form['full_name']),
-            ci=request.form['ci'].strip(),
+            full_name=format_text(request.form.get('full_name', '')),
+            ci=request.form.get('ci', '').strip(),
             birth_date=request.form.get('birth_date'),
-            age=int(request.form['age'] or 0),
-            gender=request.form['gender'],
+            age=parse_int(request.form.get('age')),
+            gender=request.form.get('gender'),
             phone=request.form.get('phone'),
-            sanatorio=format_text(request.form['sanatorio']),
+            sanatorio=format_text(request.form.get('sanatorio', '')),
             procedencia=format_text(request.form.get('procedencia')),
             profession=format_text(request.form.get('profession')),
             pathology_type=format_text(request.form.get('pathology_type')),
-            evolution_years=int(request.form.get('evolution_years') or 0),
+            evolution_years=parse_int(request.form.get('evolution_years')),
             seguro_medico=format_text(request.form.get('seguro_medico')),
             fecha_inicio_tratamiento=format_text(request.form.get('fecha_inicio_tratamiento')),
             antecedentes_familiares=format_text(request.form.get('antecedentes_familiares')),
@@ -338,17 +353,17 @@ def new_patient():
 def edit_patient(id):
     patient = Patient.query.get_or_404(id)
     if request.method == 'POST':
-        patient.full_name = format_text(request.form['full_name'])
-        patient.ci = request.form['ci'].strip()
+        patient.full_name = format_text(request.form.get('full_name', ''))
+        patient.ci = request.form.get('ci', '').strip()
         patient.birth_date = request.form.get('birth_date')
-        patient.age = int(request.form['age'] or 0)
-        patient.gender = request.form['gender']
+        patient.age = parse_int(request.form.get('age'))
+        patient.gender = request.form.get('gender')
         patient.phone = request.form.get('phone')
-        patient.sanatorio = format_text(request.form['sanatorio'])
+        patient.sanatorio = format_text(request.form.get('sanatorio', ''))
         patient.procedencia = format_text(request.form.get('procedencia'))
         patient.profession = format_text(request.form.get('profession'))
         patient.pathology_type = format_text(request.form.get('pathology_type'))
-        patient.evolution_years = int(request.form.get('evolution_years') or 0)
+        patient.evolution_years = parse_int(request.form.get('evolution_years'))
         patient.seguro_medico = format_text(request.form.get('seguro_medico'))
         patient.fecha_inicio_tratamiento = format_text(request.form.get('fecha_inicio_tratamiento'))
         patient.antecedentes_familiares = format_text(request.form.get('antecedentes_familiares'))
@@ -399,56 +414,56 @@ def new_record(patient_id):
             date=request.form['date'],
             marca_balanza=request.form.get('marca_balanza'),
             pa=request.form.get('pa'),
-            fc=int(request.form.get('fc') or 0),
-            height=float(request.form.get('height') or 0),
-            weight=float(request.form.get('weight') or 0),
-            body_fat_kg=float(request.form.get('body_fat_kg') or float(request.form.get('masa_grasa_kg') or 0)),
-            body_fat_pct=float(request.form.get('body_fat_pct') or float(request.form.get('porcentaje_grasa_corporal') or 0)),
-            visceral_fat=float(request.form.get('visceral_fat') or float(request.form.get('grasa_visceral') or 0)),
-            muscle_mass_kg=float(request.form.get('muscle_mass_kg') or float(request.form.get('masa_muscular_esqueletica') or 0)),
-            muscle_mass_pct=float(request.form.get('muscle_mass_pct') or float(request.form.get('porcentaje_musculo_esqueletico') or 0)),
-            basal_metabolism=float(request.form.get('basal_metabolism') or float(request.form.get('tasa_metabolica_basal') or 0)),
-            waist=float(request.form.get('waist') or 0),
-            masa_grasa_kg=float(request.form.get('masa_grasa_kg') or 0),
-            porcentaje_musculo=float(request.form.get('porcentaje_musculo') or 0),
-            porcentaje_musculo_esqueletico=float(request.form.get('porcentaje_musculo_esqueletico') or 0),
-            masa_muscular_esqueletica=float(request.form.get('masa_muscular_esqueletica') or 0),
-            porcentaje_oseo=float(request.form.get('porcentaje_oseo') or 0),
-            masa_osea=float(request.form.get('masa_osea') or 0),
-            porcentaje_proteina=float(request.form.get('porcentaje_proteina') or 0),
-            masa_proteica=float(request.form.get('masa_proteica') or 0),
-            porcentaje_agua_corporal=float(request.form.get('porcentaje_agua_corporal') or 0),
-            masa_agua_corporal=float(request.form.get('masa_agua_corporal') or 0),
-            peso_sin_grasa=float(request.form.get('peso_sin_grasa') or 0),
-            grasa_subcutanea_pct=float(request.form.get('grasa_subcutanea_pct') or 0),
-            edad_metabolica=int(request.form.get('edad_metabolica') or 0),
-            glucose=float(request.form.get('glucose') or 0),
-            insulin=float(request.form.get('insulin') or 0),
-            hba1c=float(request.form.get('hba1c') or 0),
-            triglycerides=float(request.form.get('triglycerides') or 0),
-            cholesterol_tot=float(request.form.get('cholesterol_tot') or 0),
-            hdl=float(request.form.get('hdl') or 0),
-            ldl=float(request.form.get('ldl') or 0),
-            vldl=float(request.form.get('vldl') or 0),
-            uric_acid=float(request.form.get('uric_acid') or 0),
-            got=float(request.form.get('got') or 0),
-            gpt=float(request.form.get('gpt') or 0),
-            fa=float(request.form.get('fa') or 0),
-            bili_tot=float(request.form.get('bili_tot') or 0),
-            bili_dir=float(request.form.get('bili_dir') or 0),
-            bili_ind=float(request.form.get('bili_ind') or 0),
-            urea=float(request.form.get('urea') or 0),
-            creatinine=float(request.form.get('creatinine') or 0),
-            tsh=float(request.form.get('tsh') or 0),
-            t4=float(request.form.get('t4') or 0),
-            t3=float(request.form.get('t3') or 0),
-            anti_tpo=float(request.form.get('anti_tpo') or 0),
-            vit_d=float(request.form.get('vit_d') or 0),
-            vit_b12=float(request.form.get('vit_b12') or 0),
-            calcium=float(request.form.get('calcium') or 0),
-            magnesium=float(request.form.get('magnesium') or 0),
-            phosphorus=float(request.form.get('phosphorus') or 0),
-            chlorine=float(request.form.get('chlorine') or 0),
+            fc=parse_int(request.form.get('fc')),
+            height=parse_float(request.form.get('height')),
+            weight=parse_float(request.form.get('weight')),
+            body_fat_kg=parse_float(request.form.get('body_fat_kg') or request.form.get('masa_grasa_kg')),
+            body_fat_pct=parse_float(request.form.get('body_fat_pct') or request.form.get('porcentaje_grasa_corporal')),
+            visceral_fat=parse_float(request.form.get('visceral_fat') or request.form.get('grasa_visceral')),
+            muscle_mass_kg=parse_float(request.form.get('muscle_mass_kg') or request.form.get('masa_muscular_esqueletica')),
+            muscle_mass_pct=parse_float(request.form.get('muscle_mass_pct') or request.form.get('porcentaje_musculo_esqueletico')),
+            basal_metabolism=parse_float(request.form.get('basal_metabolism') or request.form.get('tasa_metabolica_basal')),
+            waist=parse_float(request.form.get('waist')),
+            masa_grasa_kg=parse_float(request.form.get('masa_grasa_kg')),
+            porcentaje_musculo=parse_float(request.form.get('porcentaje_musculo')),
+            porcentaje_musculo_esqueletico=parse_float(request.form.get('porcentaje_musculo_esqueletico')),
+            masa_muscular_esqueletica=parse_float(request.form.get('masa_muscular_esqueletica')),
+            porcentaje_oseo=parse_float(request.form.get('porcentaje_oseo')),
+            masa_osea=parse_float(request.form.get('masa_osea')),
+            porcentaje_proteina=parse_float(request.form.get('porcentaje_proteina')),
+            masa_proteica=parse_float(request.form.get('masa_proteica')),
+            porcentaje_agua_corporal=parse_float(request.form.get('porcentaje_agua_corporal')),
+            masa_agua_corporal=parse_float(request.form.get('masa_agua_corporal')),
+            peso_sin_grasa=parse_float(request.form.get('peso_sin_grasa')),
+            grasa_subcutanea_pct=parse_float(request.form.get('grasa_subcutanea_pct')),
+            edad_metabolica=parse_int(request.form.get('edad_metabolica')),
+            glucose=parse_float(request.form.get('glucose')),
+            insulin=parse_float(request.form.get('insulin')),
+            hba1c=parse_float(request.form.get('hba1c')),
+            triglycerides=parse_float(request.form.get('triglycerides')),
+            cholesterol_tot=parse_float(request.form.get('cholesterol_tot')),
+            hdl=parse_float(request.form.get('hdl')),
+            ldl=parse_float(request.form.get('ldl')),
+            vldl=parse_float(request.form.get('vldl')),
+            uric_acid=parse_float(request.form.get('uric_acid')),
+            got=parse_float(request.form.get('got')),
+            gpt=parse_float(request.form.get('gpt')),
+            fa=parse_float(request.form.get('fa')),
+            bili_tot=parse_float(request.form.get('bili_tot')),
+            bili_dir=parse_float(request.form.get('bili_dir')),
+            bili_ind=parse_float(request.form.get('bili_ind')),
+            urea=parse_float(request.form.get('urea')),
+            creatinine=parse_float(request.form.get('creatinine')),
+            tsh=parse_float(request.form.get('tsh')),
+            t4=parse_float(request.form.get('t4')),
+            t3=parse_float(request.form.get('t3')),
+            anti_tpo=parse_float(request.form.get('anti_tpo')),
+            vit_d=parse_float(request.form.get('vit_d')),
+            vit_b12=parse_float(request.form.get('vit_b12')),
+            calcium=parse_float(request.form.get('calcium')),
+            magnesium=parse_float(request.form.get('magnesium')),
+            phosphorus=parse_float(request.form.get('phosphorus')),
+            chlorine=parse_float(request.form.get('chlorine')),
             ecografia_abdominal=request.form.get('ecografia_abdominal'),
             ecografia_tiroidea=request.form.get('ecografia_tiroidea'),
             otros_estudios=request.form.get('otros_estudios'),
@@ -484,56 +499,56 @@ def edit_record(id):
         record.date = request.form['date']
         record.marca_balanza = request.form.get('marca_balanza')
         record.pa = request.form.get('pa')
-        record.fc = int(request.form.get('fc') or 0)
-        record.height = float(request.form.get('height') or 0)
-        record.weight = float(request.form.get('weight') or 0)
-        record.body_fat_kg = float(request.form.get('body_fat_kg') or float(request.form.get('masa_grasa_kg') or 0))
-        record.body_fat_pct = float(request.form.get('body_fat_pct') or float(request.form.get('porcentaje_grasa_corporal') or 0))
-        record.visceral_fat = float(request.form.get('visceral_fat') or float(request.form.get('grasa_visceral') or 0))
-        record.muscle_mass_kg = float(request.form.get('muscle_mass_kg') or float(request.form.get('masa_muscular_esqueletica') or 0))
-        record.muscle_mass_pct = float(request.form.get('muscle_mass_pct') or float(request.form.get('porcentaje_musculo_esqueletico') or 0))
-        record.basal_metabolism = float(request.form.get('basal_metabolism') or float(request.form.get('tasa_metabolica_basal') or 0))
-        record.waist = float(request.form.get('waist') or 0)
-        record.masa_grasa_kg = float(request.form.get('masa_grasa_kg') or 0)
-        record.porcentaje_musculo = float(request.form.get('porcentaje_musculo') or 0)
-        record.porcentaje_musculo_esqueletico = float(request.form.get('porcentaje_musculo_esqueletico') or 0)
-        record.masa_muscular_esqueletica = float(request.form.get('masa_muscular_esqueletica') or 0)
-        record.porcentaje_oseo = float(request.form.get('porcentaje_oseo') or 0)
-        record.masa_osea = float(request.form.get('masa_osea') or 0)
-        record.porcentaje_proteina = float(request.form.get('porcentaje_proteina') or 0)
-        record.masa_proteica = float(request.form.get('masa_proteica') or 0)
-        record.porcentaje_agua_corporal = float(request.form.get('porcentaje_agua_corporal') or 0)
-        record.masa_agua_corporal = float(request.form.get('masa_agua_corporal') or 0)
-        record.peso_sin_grasa = float(request.form.get('peso_sin_grasa') or 0)
-        record.grasa_subcutanea_pct = float(request.form.get('grasa_subcutanea_pct') or 0)
-        record.edad_metabolica = int(request.form.get('edad_metabolica') or 0)
-        record.glucose = float(request.form.get('glucose') or 0)
-        record.insulin = float(request.form.get('insulin') or 0)
-        record.hba1c = float(request.form.get('hba1c') or 0)
-        record.triglycerides = float(request.form.get('triglycerides') or 0)
-        record.cholesterol_tot = float(request.form.get('cholesterol_tot') or 0)
-        record.hdl = float(request.form.get('hdl') or 0)
-        record.ldl = float(request.form.get('ldl') or 0)
-        record.vldl = float(request.form.get('vldl') or 0)
-        record.uric_acid = float(request.form.get('uric_acid') or 0)
-        record.got = float(request.form.get('got') or 0)
-        record.gpt = float(request.form.get('gpt') or 0)
-        record.fa = float(request.form.get('fa') or 0)
-        record.bili_tot = float(request.form.get('bili_tot') or 0)
-        record.bili_dir = float(request.form.get('bili_dir') or 0)
-        record.bili_ind = float(request.form.get('bili_ind') or 0)
-        record.urea = float(request.form.get('urea') or 0)
-        record.creatinine = float(request.form.get('creatinine') or 0)
-        record.tsh = float(request.form.get('tsh') or 0)
-        record.t4 = float(request.form.get('t4') or 0)
-        record.t3 = float(request.form.get('t3') or 0)
-        record.anti_tpo = float(request.form.get('anti_tpo') or 0)
-        record.vit_d = float(request.form.get('vit_d') or 0)
-        record.vit_b12 = float(request.form.get('vit_b12') or 0)
-        record.calcium = float(request.form.get('calcium') or 0)
-        record.magnesium = float(request.form.get('magnesium') or 0)
-        record.phosphorus = float(request.form.get('phosphorus') or 0)
-        record.chlorine = float(request.form.get('chlorine') or 0)
+        record.fc = parse_int(request.form.get('fc'))
+        record.height = parse_float(request.form.get('height'))
+        record.weight = parse_float(request.form.get('weight'))
+        record.body_fat_kg = parse_float(request.form.get('body_fat_kg') or request.form.get('masa_grasa_kg'))
+        record.body_fat_pct = parse_float(request.form.get('body_fat_pct') or request.form.get('porcentaje_grasa_corporal'))
+        record.visceral_fat = parse_float(request.form.get('visceral_fat') or request.form.get('grasa_visceral'))
+        record.muscle_mass_kg = parse_float(request.form.get('muscle_mass_kg') or request.form.get('masa_muscular_esqueletica'))
+        record.muscle_mass_pct = parse_float(request.form.get('muscle_mass_pct') or request.form.get('porcentaje_musculo_esqueletico'))
+        record.basal_metabolism = parse_float(request.form.get('basal_metabolism') or request.form.get('tasa_metabolica_basal'))
+        record.waist = parse_float(request.form.get('waist'))
+        record.masa_grasa_kg = parse_float(request.form.get('masa_grasa_kg'))
+        record.porcentaje_musculo = parse_float(request.form.get('porcentaje_musculo'))
+        record.porcentaje_musculo_esqueletico = parse_float(request.form.get('porcentaje_musculo_esqueletico'))
+        record.masa_muscular_esqueletica = parse_float(request.form.get('masa_muscular_esqueletica'))
+        record.porcentaje_oseo = parse_float(request.form.get('porcentaje_oseo'))
+        record.masa_osea = parse_float(request.form.get('masa_osea'))
+        record.porcentaje_proteina = parse_float(request.form.get('porcentaje_proteina'))
+        record.masa_proteica = parse_float(request.form.get('masa_proteica'))
+        record.porcentaje_agua_corporal = parse_float(request.form.get('porcentaje_agua_corporal'))
+        record.masa_agua_corporal = parse_float(request.form.get('masa_agua_corporal'))
+        record.peso_sin_grasa = parse_float(request.form.get('peso_sin_grasa'))
+        record.grasa_subcutanea_pct = parse_float(request.form.get('grasa_subcutanea_pct'))
+        record.edad_metabolica = parse_int(request.form.get('edad_metabolica'))
+        record.glucose = parse_float(request.form.get('glucose'))
+        record.insulin = parse_float(request.form.get('insulin'))
+        record.hba1c = parse_float(request.form.get('hba1c'))
+        record.triglycerides = parse_float(request.form.get('triglycerides'))
+        record.cholesterol_tot = parse_float(request.form.get('cholesterol_tot'))
+        record.hdl = parse_float(request.form.get('hdl'))
+        record.ldl = parse_float(request.form.get('ldl'))
+        record.vldl = parse_float(request.form.get('vldl'))
+        record.uric_acid = parse_float(request.form.get('uric_acid'))
+        record.got = parse_float(request.form.get('got'))
+        record.gpt = parse_float(request.form.get('gpt'))
+        record.fa = parse_float(request.form.get('fa'))
+        record.bili_tot = parse_float(request.form.get('bili_tot'))
+        record.bili_dir = parse_float(request.form.get('bili_dir'))
+        record.bili_ind = parse_float(request.form.get('bili_ind'))
+        record.urea = parse_float(request.form.get('urea'))
+        record.creatinine = parse_float(request.form.get('creatinine'))
+        record.tsh = parse_float(request.form.get('tsh'))
+        record.t4 = parse_float(request.form.get('t4'))
+        record.t3 = parse_float(request.form.get('t3'))
+        record.anti_tpo = parse_float(request.form.get('anti_tpo'))
+        record.vit_d = parse_float(request.form.get('vit_d'))
+        record.vit_b12 = parse_float(request.form.get('vit_b12'))
+        record.calcium = parse_float(request.form.get('calcium'))
+        record.magnesium = parse_float(request.form.get('magnesium'))
+        record.phosphorus = parse_float(request.form.get('phosphorus'))
+        record.chlorine = parse_float(request.form.get('chlorine'))
         record.ecografia_abdominal = request.form.get('ecografia_abdominal')
         record.ecografia_tiroidea = request.form.get('ecografia_tiroidea')
         record.otros_estudios = request.form.get('otros_estudios')
@@ -682,7 +697,6 @@ def generate_pdf(patient_id):
         story.append(t)
         story.append(Spacer(1, 10))
         
-        # Búsqueda inteligente para el PDF
         w_init = next((float(r.weight) for r in valid_records if r.weight), 0)
         w_last = float(last_r.weight or 0)
         f_init = next((float(r.body_fat_kg) for r in valid_records if r.body_fat_kg), 0)
@@ -727,6 +741,42 @@ def generate_pdf(patient_id):
         ]))
         story.append(sum_table)
         story.append(Spacer(1, 15))
+
+        # --- NUEVO: RESUMEN DEL ÚLTIMO MES (ENTRE LOS DOS ÚLTIMOS CONTROLES) ---
+        if len(valid_records) >= 2:
+            prev_r = valid_records[-2]
+            w_prev = float(prev_r.weight or 0)
+            f_prev = float(prev_r.body_fat_kg or 0)
+            m_prev = float(prev_r.muscle_mass_kg or 0)
+            c_prev = float(prev_r.waist or 0)
+            
+            w_diff_last = round(w_prev - w_last, 2)
+            f_diff_last = round(f_prev - f_last, 2)
+            m_diff_last = round(m_last - m_prev, 2)
+            c_diff_last = round(c_prev - c_last, 2)
+            
+            story.append(Paragraph("RESUMEN DEL ÚLTIMO MES (CONTRA EL CONTROL ANTERIOR)", section_style))
+            
+            sum_last_data = [
+                ['Peso control anterior (kg)', 'Peso actual (kg)', 'Diferencia Mensual Peso (kg)'], [center_val(w_prev), center_val(w_last), format_diff(w_diff_last)],
+                ['Grasa control anterior (kg)', 'Grasa actual (kg)', 'Diferencia Mensual Grasa (kg)'], [center_val(f_prev), center_val(f_last), format_diff(f_diff_last)],
+                ['Músculo control anterior (kg)', 'Músculo actual (kg)', 'Diferencia Mensual Músculo (kg)'], [center_val(m_prev), center_val(m_last), format_diff(m_diff_last, is_muscle=True)],
+                ['Cintura control anterior (cm)', 'Cintura actual (cm)', 'Diferencia Mensual Cintura (cm)'], [center_val(c_prev), center_val(c_last), format_diff(c_diff_last)]
+            ]
+            
+            sum_last_table = Table(sum_last_data, colWidths=[180, 180, 180])
+            sum_last_table.setStyle(TableStyle([
+                ('ALIGN', (0,0), (-1,-1), 'CENTER'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('FONTNAME', (0,2), (-1,2), 'Helvetica-Bold'), ('FONTNAME', (0,4), (-1,4), 'Helvetica-Bold'), ('FONTNAME', (0,6), (-1,6), 'Helvetica-Bold'),
+                ('FONTSIZE', (0,0), (-1,-1), 8), ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor('#006666')), ('TEXTCOLOR', (0,2), (-1,2), colors.HexColor('#006666')),
+                ('TEXTCOLOR', (0,4), (-1,4), colors.HexColor('#006666')), ('TEXTCOLOR', (0,6), (-1,6), colors.HexColor('#006666')),
+                ('GRID', (0,0), (-1,-1), 0.75, colors.HexColor('#006666')), ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#fff4e6')), 
+                ('BACKGROUND', (0,2), (-1,2), colors.HexColor('#fff4e6')), ('BACKGROUND', (0,4), (-1,4), colors.HexColor('#fff4e6')),
+                ('BACKGROUND', (0,6), (-1,6), colors.HexColor('#fff4e6')), ('BOTTOMPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 4),
+            ]))
+            story.append(sum_last_table)
+            story.append(Spacer(1, 15))
+        # -------------------------------------------------------------------------
         
         story.append(Paragraph("<b>INDICACIONES Y PLAN TERAPÉUTICO</b>", section_style))
         story.append(Spacer(1, 5))
