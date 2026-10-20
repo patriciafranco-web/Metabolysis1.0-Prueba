@@ -742,7 +742,7 @@ def generate_pdf(patient_id):
         story.append(sum_table)
         story.append(Spacer(1, 15))
 
-        # --- NUEVO: RESUMEN COMPACTO DEL ÚLTIMO MES ---
+        # --- NUEVO: RESUMEN COMPACTO DEL ÚLTIMO MES CON CONTEXTO COMPLETO ---
         if len(valid_records) >= 2:
             prev_r = valid_records[-2]
             w_prev = float(prev_r.weight or 0)
@@ -757,24 +757,31 @@ def generate_pdf(patient_id):
             
             story.append(Paragraph("DIFERENCIAS DEL ÚLTIMO MES (CONTROL ACTUAL VS ANTERIOR)", section_style))
             
+            # Formato de 4 filas x 4 columnas
             mini_last_data = [
-                ['Dif. Peso (kg)', 'Dif. Grasa (kg)', 'Dif. Músculo (kg)', 'Dif. Cintura (cm)'],
-                [format_diff(w_diff_last), format_diff(f_diff_last), format_diff(m_diff_last, is_muscle=True), format_diff(c_diff_last)]
+                ['PARÁMETRO', 'CONTROL ANTERIOR', 'CONTROL ACTUAL', 'DIFERENCIA'],
+                ['Peso (kg)', center_val(w_prev), center_val(w_last), format_diff(w_diff_last)],
+                ['Grasa (kg)', center_val(f_prev), center_val(f_last), format_diff(f_diff_last)],
+                ['Músculo (kg)', center_val(m_prev), center_val(m_last), format_diff(m_diff_last, is_muscle=True)],
+                ['Cintura (cm)', center_val(c_prev), center_val(c_last), format_diff(c_diff_last)]
             ]
             
             mini_last_table = Table(mini_last_data, colWidths=[130, 130, 130, 130])
             mini_last_table.setStyle(TableStyle([
                 ('ALIGN', (0,0), (-1,-1), 'CENTER'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'), ('FONTSIZE', (0,0), (-1,-1), 8),
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'), # Título en negrita
+                ('FONTNAME', (0,1), (0,-1), 'Helvetica-Bold'), # Primera columna en negrita
+                ('FONTSIZE', (0,0), (-1,-1), 8),
                 ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor('#7f4f24')),
+                ('TEXTCOLOR', (0,1), (0,-1), colors.HexColor('#7f4f24')),
                 ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#ddb892')),
                 ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#fde2e4')),
-                ('BACKGROUND', (0,1), (-1,1), colors.HexColor('#ffffff')),
+                ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#ffffff')),
                 ('BOTTOMPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 4),
             ]))
             story.append(mini_last_table)
             story.append(Spacer(1, 15))
-        # ----------------------------------------------
+        # ---------------------------------------------------------------------
         
         story.append(Paragraph("<b>INDICACIONES Y PLAN TERAPÉUTICO</b>", section_style))
         story.append(Spacer(1, 5))
