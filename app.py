@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, Response, send_file, session
+from flask import Flask, render_template, request, redirect, url_for, Response, send_file, session, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -755,7 +755,6 @@ def generate_pdf(patient_id):
         story.append(sum_table)
         story.append(Spacer(1, 15))
 
-        # --- NUEVO: RESUMEN COMPACTO DEL ÚLTIMO MES CON CONTEXTO COMPLETO ---
         if len(valid_records) >= 2:
             prev_r = valid_records[-2]
             w_prev = float(prev_r.weight or 0)
@@ -770,7 +769,6 @@ def generate_pdf(patient_id):
             
             story.append(Paragraph("DIFERENCIAS DEL ÚLTIMO MES (CONTROL ACTUAL VS ANTERIOR)", section_style))
             
-            # Formato de 4 filas x 4 columnas
             mini_last_data = [
                 ['PARÁMETRO', 'CONTROL ANTERIOR', 'CONTROL ACTUAL', 'DIFERENCIA'],
                 ['Peso (kg)', center_val(w_prev), center_val(w_last), format_diff(w_diff_last)],
@@ -782,8 +780,8 @@ def generate_pdf(patient_id):
             mini_last_table = Table(mini_last_data, colWidths=[130, 130, 130, 130])
             mini_last_table.setStyle(TableStyle([
                 ('ALIGN', (0,0), (-1,-1), 'CENTER'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'), # Título en negrita
-                ('FONTNAME', (0,1), (0,-1), 'Helvetica-Bold'), # Primera columna en negrita
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('FONTNAME', (0,1), (0,-1), 'Helvetica-Bold'),
                 ('FONTSIZE', (0,0), (-1,-1), 8),
                 ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor('#7f4f24')),
                 ('TEXTCOLOR', (0,1), (0,-1), colors.HexColor('#7f4f24')),
@@ -794,7 +792,6 @@ def generate_pdf(patient_id):
             ]))
             story.append(mini_last_table)
             story.append(Spacer(1, 15))
-        # ---------------------------------------------------------------------
         
         story.append(Paragraph("<b>INDICACIONES Y PLAN TERAPÉUTICO</b>", section_style))
         story.append(Spacer(1, 5))
@@ -816,6 +813,11 @@ def generate_pdf(patient_id):
     doc.build(story)
     buffer.seek(0)
     return send_file(buffer, as_attachment=True, download_name=f"Informe_{patient.full_name}.pdf", mimetype='application/pdf')
+
+# --- RUTA PARA MOSTRAR LAS FOTOS CORRECTAMENTE ---
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
