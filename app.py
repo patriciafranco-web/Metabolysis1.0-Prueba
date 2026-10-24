@@ -669,12 +669,14 @@ def generate_pdf(patient_id):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=20, leftMargin=20, topMargin=20, bottomMargin=20)
     story = []
+    
+    # APLICANDO EL AZUL MARINO (#003366) A LOS ESTILOS DE TEXTO
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle('DocTitle', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=14, alignment=1, spaceAfter=15)
-    section_style = ParagraphStyle('SectionHeading', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10, alignment=1, spaceAfter=8, spaceBefore=10)
-    body_style = ParagraphStyle('DocBody', parent=styles['Normal'], fontName='Helvetica', fontSize=9, leading=13)
-    contact_style = ParagraphStyle('ContactInfo', parent=styles['Normal'], fontName='Helvetica', fontSize=8, alignment=1, textColor=colors.HexColor('#555555'), spaceAfter=15)
-    cell_style = ParagraphStyle('CellStyle', fontName='Helvetica', fontSize=8, alignment=1)
+    title_style = ParagraphStyle('DocTitle', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=14, alignment=1, spaceAfter=15, textColor=colors.HexColor('#003366'))
+    section_style = ParagraphStyle('SectionHeading', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10, alignment=1, spaceAfter=8, spaceBefore=10, textColor=colors.HexColor('#003366'))
+    body_style = ParagraphStyle('DocBody', parent=styles['Normal'], fontName='Helvetica', fontSize=9, leading=13, textColor=colors.HexColor('#003366'))
+    contact_style = ParagraphStyle('ContactInfo', parent=styles['Normal'], fontName='Helvetica', fontSize=8, alignment=1, textColor=colors.HexColor('#003366'), spaceAfter=15)
+    cell_style = ParagraphStyle('CellStyle', fontName='Helvetica', fontSize=8, alignment=1, textColor=colors.HexColor('#003366'))
     
     logo_path = os.path.join(app.config['UPLOAD_FOLDER'].replace('/var/data/uploads', 'static'), 'logo.png')
     if not os.path.exists(logo_path): logo_path = os.path.join('static', 'logo.png')
@@ -706,6 +708,7 @@ def generate_pdf(patient_id):
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e8f4f4')), ('ALIGN', (0,0), (-1,-1), 'CENTER'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
             ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'), ('FONTSIZE', (0,0), (-1,0), 6.5), ('FONTSIZE', (0,1), (-1,-1), 6.5),
             ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cccccc')), ('BOTTOMPADDING', (0,0), (-1,-1), 4), ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('TEXTCOLOR', (0,0), (-1,-1), colors.HexColor('#003366'))  # Aplicamos el azul oscuro también aquí
         ]))
         story.append(t)
         story.append(Spacer(1, 10))
@@ -727,7 +730,8 @@ def generate_pdf(patient_id):
         story.append(Paragraph("RESUMEN DESDE INICIO AL ÚLTIMO CONTROL", section_style))
         
         def format_diff(val, is_muscle=False):
-            if val == 0: return Paragraph(f"<font color='#000000'>0.0</font>", cell_style)
+            # Cambiado de #000000 a #003366 para evitar que los ceros salgan en negro
+            if val == 0: return Paragraph(f"<font color='#003366'>0.0</font>", cell_style)
             is_good = val > 0
             str_val = (f"+{val}" if val > 0 else f"{val}") if is_muscle else (f"-{val}" if val > 0 else f"+{abs(val)}")
             color = '#2a9d8f' if is_good else '#e63946'
