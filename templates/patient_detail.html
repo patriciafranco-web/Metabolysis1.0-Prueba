@@ -28,31 +28,27 @@
             <h2 class="text-danger fw-bold m-0">❤️ METABOLISYS</h2>
         </div>
         <div class="d-flex gap-2 flex-wrap align-items-center">
-            <!-- NUEVOS BOTONES DE PACIENTE -->
             <a href="{{ url_for('edit_patient', id=patient.id) }}" class="btn btn-outline-warning btn-sm fw-bold text-light">✏️ Editar Paciente</a>
             <form action="{{ url_for('delete_patient', id=patient.id) }}" method="POST" onsubmit="return confirm('ATENCIÓN: ¿Está seguro de eliminar TODO el perfil de este paciente? Se borrará todo su historial y fotos. Esta acción NO se puede deshacer.');" class="m-0">
                 <button type="submit" class="btn btn-outline-danger btn-sm fw-bold">🗑️ Eliminar Paciente</button>
             </form>
             <div class="border-start border-secondary mx-1" style="height: 25px;"></div>
             
-            <!-- NUEVO BOTON: COPIAR PARA HIS -->
             <button onclick="copiarParaHIS()" class="btn btn-info btn-sm fw-bold text-white">📋 Copiar para HIS</button>
             
-            <!-- TUS BOTONES ANTERIORES -->
             <a href="{{ url_for('edit_treatment', patient_id=patient.id) }}" class="btn btn-warning btn-sm fw-bold">📋 Plan Médico</a>
             <a href="{{ url_for('new_record', patient_id=patient.id) }}" class="btn btn-primary btn-sm fw-bold">➕ Nuevo Control</a>
             <a href="{{ url_for('generate_pdf', patient_id=patient.id) }}" class="btn btn-success btn-sm fw-bold">📄 Informe PDF</a>
         </div>
     </div>
 
-    <!-- NUEVO: ÚLTIMA INDICACIÓN DESTACADA CORREGIDA -->
+    <!-- ÚLTIMA INDICACIÓN DESTACADA -->
     <div class="card p-4 shadow-lg rounded-4 mb-4" style="background-color: #0d1b2a !important; border: 1px solid #17a2b8 !important;">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="text-info fw-bold m-0">📌 Última Indicación / Plan a Seguir</h4>
             <a href="{{ url_for('edit_treatment', patient_id=patient.id) }}" class="btn btn-outline-info btn-sm fw-bold">✏️ Modificar Plan</a>
         </div>
         
-        <!-- CORRECCIÓN: Ahora busca el plan del último control -->
         {% if valid_records and valid_records[-1].indicaciones_tratamiento %}
             <div class="text-white" style="white-space: pre-line; font-size: 1.1rem; line-height: 1.6;">{{ valid_records[-1].indicaciones_tratamiento }}</div>
         {% else %}
@@ -60,9 +56,16 @@
         {% endif %}
     </div>
 
-    <!-- TARJETA DE FILIACIÓN Y DATOS GENERALES -->
+    <!-- TARJETA DE FILIACIÓN Y DATOS GENERALES CON ALTURA Y NACIMIENTO DESTACADOS -->
     <div class="card p-4 shadow-lg rounded-4 mb-4">
-        <h4 class="text-warning mb-3">Filiación y Datos Clínicos: {{ patient.full_name }}</h4>
+        <div class="d-flex justify-content-between align-items-center flex-wrap mb-3 gap-2">
+            <h4 class="text-warning m-0">Filiación y Datos Clínicos: {{ patient.full_name }}</h4>
+            <div class="d-flex gap-3 bg-dark px-3 py-2 rounded border border-warning text-light small shadow-sm">
+                <span>📏 <strong>Altura:</strong> {% if valid_records and valid_records[-1].height %}{{ valid_records[-1].height }} cm{% else %}No reg.{% endif %}</span>
+                <span>📅 <strong>Nacimiento:</strong> {{ patient.birth_date or 'N/D' }}</span>
+            </div>
+        </div>
+
         <div class="row g-3">
             <div class="col-md-3"><strong>Cédula (CI):</strong> <span class="text-white">{{ patient.ci }}</span></div>
             <div class="col-md-3"><strong>Edad:</strong> <span class="text-white">{{ patient.age }} años</span></div>
@@ -74,7 +77,6 @@
             <div class="col-md-3"><strong>Patología Principal:</strong> <span class="text-white">{{ patient.pathology_type or 'N/D' }}</span></div>
         </div>
 
-        <!-- AQUÍ SE APLICÓ EL FORMATO WHITE-SPACE: PRE-LINE -->
         <hr class="border-secondary my-3">
         <div class="row g-3 text-light">
             <div class="col-md-6" style="white-space: pre-line;"><strong>Ant. Familiares:</strong><br>{{ patient.antecedentes_familiares or 'Ninguno' }}</div>
@@ -86,7 +88,7 @@
         </div>
     </div>
 
-    <!-- CALCULADORAS CLÍNICAS AUTOMÁTICAS CON COLORES -->
+    <!-- CALCULADORAS CLÍNICAS AUTOMÁTICAS -->
     {% if valid_records %}
     {% set last_r = valid_records[-1] %}
     <div class="card p-3 mb-4 border-secondary bg-black">
@@ -127,7 +129,7 @@
 
     <!-- CONTENIDO DE LAS PESTAÑAS -->
     <div class="tab-content" id="patientTabContent">
-        <!-- Pestaña 1: Antropometría con Diferencias y Colores -->
+        <!-- Pestaña 1: Antropometría -->
         <div class="tab-pane fade show active" id="antropometria" role="tabpanel">
             <div class="card p-4 shadow-lg rounded-4">
                 <h5 class="section-title">Historial Antropométrico y Diferencias (Evolución)</h5>
@@ -149,11 +151,10 @@
                                 <th>Visceral</th>
                                 <th>Músculo (kg)</th>
                                 <th>Dif. Músculo</th>
-                                <th class="text-warning">Acciones</th> <!-- NUEVA COLUMNA -->
+                                <th class="text-warning">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- LÓGICA INTELIGENTE DE BÚSQUEDA DE DATOS INICIALES -->
                             {% set ns = namespace(first_w=0, first_wst=0, first_m=0) %}
                             {% for r in valid_records %}
                                 {% if ns.first_w == 0 and r.weight %}{% set ns.first_w = r.weight %}{% endif %}
@@ -215,7 +216,6 @@
                                         <span class="text-muted">Inicio</span>
                                     {% endif %}
                                 </td>
-                                <!-- NUEVA CELDA CON BOTONES DE EDITAR/ELIMINAR -->
                                 <td>
                                     <div class="d-flex gap-1 justify-content-center">
                                         <a href="{{ url_for('edit_record', id=r.id) }}" class="btn btn-outline-warning btn-sm px-2 py-0" title="Editar Consulta">✏️</a>
@@ -291,7 +291,6 @@
                     {% for photo in patient.photos %}
                     <div class="col-md-3">
                         <div class="card bg-dark border-secondary p-2">
-                            <!-- AQUI ESTA LA CORRECCION DE LA RUTA DE LA FOTO -->
                             <a href="{{ url_for('uploaded_file', filename=photo.filename) }}" target="_blank">
                                 <img src="{{ url_for('uploaded_file', filename=photo.filename) }}" class="patient-img" alt="Foto Paciente">
                             </a>
@@ -318,7 +317,6 @@
 <!-- SCRIPT PARA BOTON COPIAR A HIS -->
 <script>
 function copiarParaHIS() {
-    // Recopilamos la información estructurada incluyendo el último control
     const textoHIS = `
 FECHA DE CONSULTA: {% if valid_records %}{{ valid_records[-1].date }}{% else %}Actualización{% endif %}
 PACIENTE: {{ patient.full_name }}
@@ -345,7 +343,6 @@ Ninguno
 {% endif %}
     `.trim();
 
-    // Función para copiar al portapapeles
     navigator.clipboard.writeText(textoHIS).then(function() {
         alert("✅ ¡Historial y datos del último control copiados exitosamente!\n\nYa puedes ir a la pantalla del HIS, hacer clic derecho y seleccionar 'Pegar' (o usar Ctrl+V).");
     }).catch(function(err) {
