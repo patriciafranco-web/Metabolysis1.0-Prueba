@@ -312,9 +312,10 @@
         </div>
     </div>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- SCRIPT PARA BOTON COPIAR A HIS (100% SEGURO CON TOJSON Y PROMPT PARA PC) -->
+<!-- SCRIPT PARA COPIADO DIRECTO EN 1 CLIC (SILENCIOSO Y SEGURO) -->
 <script>
 function copiarParaHIS() {
     const r_curr = {% if valid_records %}{
@@ -391,12 +392,31 @@ EDAD: {{ patient.age }} años
         textoHIS += `\n\n-----------------------------------\nTRATAMIENTO Y PLAN:\n${r_curr.indicaciones}`;
     }
 
-    textoHIS += `\n\n-----------------------------------\nEVOLUCIÓN / ANTECEDENTES:\n{{ patient.antecedentes_personales or 'Ninguno' }}`;
+    textoHIS += `\n\n-----------------------------------\nANTECEDENTES PERSONALES:\n{{ patient.antecedentes_personales or 'Ninguno' }}`;
 
     const textoFinal = textoHIS.trim();
 
-    // Ventana flotante infalible en PC para asegurar la copia con Ctrl+C
-    window.prompt("📋 Copie el texto para el HIS (Ctrl+C y Enter):", textoFinal);
+    // Método infalible de textarea temporal para copiado directo a un clic
+    const textarea = document.createElement("textarea");
+    textarea.value = textoFinal;
+    document.body.appendChild(textarea);
+    textarea.select();
+    textarea.setSelectionRange(0, 99999);
+
+    try {
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        if (successful) {
+            // Notificación visual rápida y discreta
+            alert("✅ ¡Copiado para el HIS con éxito! Ya puedes presionar Ctrl+V.");
+        } else {
+            alert("No se pudo copiar automáticamente.");
+        }
+    } catch (err) {
+        document.body.removeChild(textarea);
+        alert("Error al intentar copiar.");
+        console.error(err);
+    }
 }
 </script>
 </body>
