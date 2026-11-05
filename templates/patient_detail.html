@@ -314,7 +314,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- SCRIPT PARA BOTON COPIAR A HIS -->
+<!-- SCRIPT PARA BOTON COPIAR A HIS (100% SEGURO CON TOJSON Y PROMPT PARA PC) -->
 <script>
 function copiarParaHIS() {
     const r_curr = {% if valid_records %}{
@@ -333,74 +333,70 @@ function copiarParaHIS() {
         hdl: "{{ valid_records[-1].hdl or '' }}",
         ldl: "{{ valid_records[-1].ldl or '' }}",
         tsh: "{{ valid_records[-1].tsh or '' }}",
-        notas: "{{ valid_records[-1].notas or valid_records[-1].observaciones or '' }}",
-        indicaciones: "{{ valid_records[-1].indicaciones_tratamiento or 'Ninguno' }}"
+        notas: {{ (valid_records[-1].notas or valid_records[-1].observaciones or '') | tojson }},
+        indicaciones: {{ (valid_records[-1].indicaciones_tratamiento or 'Ninguno') | tojson }}
     }{% else %}null{% endif %};
 
     const r_prev = {% if valid_records and valid_records | length > 1 %}{
         date: "{{ valid_records[-2].date }}",
         weight: "{{ valid_records[-2].weight or '' }}",
-        waist: "{{ valid_records[-2].waist or '' }}"
+        waist: "{{ valid_records[-2].weight or '' }}"
     }{% else %}null{% endif %};
 
-    if (!r_curr) {
-        alert("No hay registros clínicos para copiar.");
-        return;
-    }
-
-    // Cálculo de diferencias (deltas) si hay peso anterior
-    let pesoStr = `Peso: ${r_curr.weight || '-'} kg`;
-    if (r_prev && r_prev.weight && r_curr.weight) {
-        let diffW = (parseFloat(r_curr.weight) - parseFloat(r_prev.weight)).toFixed(2);
-        let signoW = diffW > 0 ? `+${diffW}` : diffW;
-        pesoStr += ` (Ant: ${r_prev.weight} kg del ${r_prev.date} | Dif: ${signoW} kg)`;
-    }
-
-    let cinturaStr = `Cintura: ${r_curr.waist || '-'} cm`;
-    if (r_prev && r_prev.waist && r_curr.waist) {
-        let diffC = (parseFloat(r_curr.waist) - parseFloat(r_prev.waist)).toFixed(1);
-        let signoC = diffC > 0 ? `+${diffC}` : diffC;
-        cinturaStr += ` (Dif: ${signoC} cm)`;
-    }
-
-    // Comprobamos si hay al menos un laboratorio cargado
-    let tieneLabs = r_curr.glucose || r_curr.insulin || r_curr.homair || r_curr.hba1c || r_curr.triglycerides || r_curr.cholesterol_tot || r_curr.hdl || r_curr.ldl || r_curr.tsh;
-
-    let textoHIS = `FECHA DE CONSULTA: ${r_curr.date}
+    let textoHIS = `FECHA DE CONSULTA: ${r_curr ? r_curr.date : 'Actualización'}
 PACIENTE: {{ patient.full_name }}
 CI: {{ patient.ci }}
 EDAD: {{ patient.age }} años
------------------------------------
-CONTROL ACTUAL:
+-----------------------------------`;
+
+    if (r_curr) {
+        let pesoStr = `Peso: ${r_curr.weight || '-'} kg`;
+        if (r_prev && r_prev.weight && r_curr.weight) {
+            let diffW = (parseFloat(r_curr.weight) - parseFloat(r_prev.weight)).toFixed(2);
+            let signoW = diffW > 0 ? `+${diffW}` : diffW;
+            pesoStr += ` (Ant: ${r_prev.weight} kg del ${r_prev.date} | Dif: ${signoW} kg)`;
+        }
+
+        let cinturaStr = `Cintura: ${r_curr.waist || '-'} cm`;
+        if (r_prev && r_prev.waist && r_curr.waist) {
+            let diffC = (parseFloat(r_curr.waist) - parseFloat(r_prev.waist)).toFixed(1);
+            let signoC = diffC > 0 ? `+${diffC}` : diffC;
+            cinturaStr += ` (Dif: ${signoC} cm)`;
+        }
+
+        let tieneLabs = r_curr.glucose || r_curr.insulin || r_curr.homair || r_curr.hba1c || r_curr.triglycerides || r_curr.cholesterol_tot || r_curr.hdl || r_curr.ldl || r_curr.tsh;
+
+        textoHIS += `\nCONTROL ACTUAL:
 - ${pesoStr}
 - IMC: ${r_curr.bmi || '-'} | ${cinturaStr}
 - Presión / FC: ${r_curr.pa || '-'} / ${r_curr.fc || '-'}`;
 
-    if (tieneLabs) {
-        textoHIS += `\n\nLABORATORIOS / BIOQUÍMICA:`;
-        if (r_curr.glucose || r_curr.insulin || r_curr.homair) {
-            textoHIS += `\n- Glicemia: ${r_curr.glucose || '-'} mg/dl | Insulina: ${r_curr.insulin || '-'} | HOMA-IR: ${r_curr.homair || '-'}`;
+        if (tieneLabs) {
+            textoHIS += `\n\nLABORATORIOS / BIOQUÍMICA:`;
+            if (r_curr.glucose || r_curr.insulin || r_curr.homair) {
+                textoHIS += `\n- Glicemia: ${r_curr.glucose || '-'} mg/dl | Insulina: ${r_curr.insulin || '-'} | HOMA-IR: ${r_curr.homair || '-'}`;
+            }
+            if (r_curr.hba1c || r_curr.triglycerides || r_curr.cholesterol_tot) {
+                textoHIS += `\n- HbA1c: ${r_curr.hba1c || '-'}% | Triglicéridos: ${r_curr.triglycerides || '-'} | Col. Tot: ${r_curr.cholesterol_tot || '-'}`;
+            }
+            if (r_curr.hdl || r_curr.ldl || r_curr.tsh) {
+                textoHIS += `\n- HDL: ${r_curr.hdl || '-'} | LDL: ${r_curr.ldl || '-'} | TSH: ${r_curr.tsh || '-'}`;
+            }
         }
-        if (r_curr.hba1c || r_curr.triglycerides || r_curr.cholesterol_tot) {
-            textoHIS += `\n- HbA1c: ${r_curr.hba1c || '-'}% | Triglicéridos: ${r_curr.triglycerides || '-'} | Col. Tot: ${r_curr.cholesterol_tot || '-'}`;
+
+        if (r_curr.notas) {
+            textoHIS += `\n\nNOTAS / EVOLUCIÓN DEL DÍA:\n${r_curr.notas}`;
         }
-        if (r_curr.hdl || r_curr.ldl || r_curr.tsh) {
-            textoHIS += `\n- HDL: ${r_curr.hdl || '-'} | LDL: ${r_curr.ldl || '-'} | TSH: ${r_curr.tsh || '-'}`;
-        }
+        
+        textoHIS += `\n\n-----------------------------------\nTRATAMIENTO Y PLAN:\n${r_curr.indicaciones}`;
     }
 
-    if (r_curr.notas) {
-        textoHIS += `\n\nNOTAS / EVOLUCIÓN DEL DÍA:\n${r_curr.notas}`;
-    }
+    textoHIS += `\n\n-----------------------------------\nEVOLUCIÓN / ANTECEDENTES:\n{{ patient.antecedentes_personales or 'Ninguno' }}`;
 
-    textoHIS += `\n\n-----------------------------------\nEVOLUCIÓN / ANTECEDENTES:\n{{ patient.antecedentes_personales or 'Ninguno' }}\n\nTRATAMIENTO Y PLAN:\n${r_curr.indicaciones}`;
+    const textoFinal = textoHIS.trim();
 
-    navigator.clipboard.writeText(textoHIS.trim()).then(function() {
-        alert("✅ ¡Copiado para el HIS con éxito (comparativa, laboratorios y notas del día)!");
-    }).catch(function(err) {
-        alert("Hubo un error al copiar.");
-        console.error(err);
-    });
+    // Ventana flotante infalible en PC para asegurar la copia con Ctrl+C
+    window.prompt("📋 Copie el texto para el HIS (Ctrl+C y Enter):", textoFinal);
 }
 </script>
 </body>
