@@ -315,7 +315,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- SCRIPT PARA COPIADO DIRECTO EN 1 CLIC (SILENCIOSO Y SEGURO) -->
+<!-- SCRIPT PARA COPIADO DIRECTO EN 1 CLIC (INCLUYENDO TODA LA ANTROPOMETRÍA) -->
 <script>
 function copiarParaHIS() {
     const r_curr = {% if valid_records %}{
@@ -325,6 +325,10 @@ function copiarParaHIS() {
         waist: "{{ valid_records[-1].waist or '' }}",
         pa: "{{ valid_records[-1].pa or '' }}",
         fc: "{{ valid_records[-1].fc or '' }}",
+        body_fat_pct: "{{ valid_records[-1].body_fat_pct or '' }}",
+        body_fat_kg: "{{ valid_records[-1].body_fat_kg or '' }}",
+        visceral_fat: "{{ valid_records[-1].visceral_fat or '' }}",
+        muscle_mass_kg: "{{ valid_records[-1].muscle_mass_kg or '' }}",
         glucose: "{{ valid_records[-1].glucose or '' }}",
         insulin: "{{ valid_records[-1].insulin or '' }}",
         homair: "{{ valid_records[-1].homair or '' }}",
@@ -370,7 +374,9 @@ EDAD: {{ patient.age }} años
         textoHIS += `\nCONTROL ACTUAL:
 - ${pesoStr}
 - IMC: ${r_curr.bmi || '-'} | ${cinturaStr}
-- Presión / FC: ${r_curr.pa || '-'} / ${r_curr.fc || '-'}`;
+- Presión / FC: ${r_curr.pa || '-'} / ${r_curr.fc || '-'}
+- % Grasa: ${r_curr.body_fat_pct || '-'}% | Masa Grasa: ${r_curr.body_fat_kg || '-'} kg
+- Grasa Visceral: ${r_curr.visceral_fat || '-'} | Masa Muscular: ${r_curr.muscle_mass_kg || '-'} kg`;
 
         if (tieneLabs) {
             textoHIS += `\n\nLABORATORIOS / BIOQUÍMICA:`;
@@ -396,7 +402,7 @@ EDAD: {{ patient.age }} años
 
     const textoFinal = textoHIS.trim();
 
-    // Método infalible de textarea temporal para copiado directo a un clic
+    // Método de textarea temporal para copiado directo a un clic
     const textarea = document.createElement("textarea");
     textarea.value = textoFinal;
     document.body.appendChild(textarea);
@@ -407,8 +413,7 @@ EDAD: {{ patient.age }} años
         const successful = document.execCommand('copy');
         document.body.removeChild(textarea);
         if (successful) {
-            // Notificación visual rápida y discreta
-            alert("✅ ¡Copiado para el HIS con éxito! Ya puedes presionar Ctrl+V.");
+            alert("✅ ¡Copiado para el HIS con éxito (todos los valores del control)!");
         } else {
             alert("No se pudo copiar automáticamente.");
         }
